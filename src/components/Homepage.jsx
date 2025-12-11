@@ -1,6 +1,6 @@
 import React from "react";
 import "./Homepage.css"; // Optional: If you want to separate styling
-import logo from "../assets/nirupama-logo.png";
+import logo from "../assets/logo.png";
 
 
 const Homepage = () => {
