@@ -1,5 +1,7 @@
 import React from "react";
 import "./Homepage.css"; // Optional: If you want to separate styling
+import logo from "../assets/nirupama-logo.png";
+
 
 const Homepage = () => {
   return (
@@ -8,11 +10,8 @@ const Homepage = () => {
       {/* Navbar */}
       <nav className="navbar">
         <div className="nav-left">
-          <img
-            src="/src/assets/nirupama-logo.png"
-            alt="Nirupama Care Logo"
-            className="logo"
-          />
+          <img src={logo} alt="Nirupama Care Logo" className="logo" />
+
           <h2 className="brand-name"></h2>
         </div>
       </nav>
