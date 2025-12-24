@@ -1,158 +1,155 @@
-/* Container & Layout */
-.page-container {
+:root {
+  --primary-green: #006D5B;
+  --secondary-green: #004D40;
+  --bg-mint: #E0F2F1;
+  --white: #ffffff;
+  --gray-text: #555;
+  --light-gray: #f0f0f0;
+}
+
+.lang-container {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8fafc;
-  padding: 20px;
-  font-family: 'Inter', sans-serif;
-}
-
-.language-card {
-  background: white;
   width: 100%;
-  max-width: 480px;
-  padding: 40px;
-  border-radius: 24px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-mint);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.lang-card {
+  background: var(--white);
+  width: 100%;
+  max-width: 400px; /* Mobile friendly width */
+  padding: 40px 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 109, 91, 0.15);
   text-align: center;
+  animation: fadeIn 0.6s ease-out;
 }
 
-/* Header Elements */
-.icon-header {
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: center;
+.lang-header {
+  margin-bottom: 30px;
 }
 
-.globe-icon {
-  width: 56px;
-  height: 56px;
-  background: #e0f2fe;
-  color: #0ea5e9;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
+.lang-logo {
+  width: 120px;
+  height: auto;
+  margin-bottom: 15px;
 }
 
-.title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
+.lang-header h2 {
+  color: var(--primary-green);
+  margin: 0 0 10px 0;
+  font-size: 1.8rem;
 }
 
-.subtitle {
-  color: #64748b;
-  font-size: 15px;
-  line-height: 1.5;
-  margin-bottom: 32px;
+.lang-header p {
+  color: var(--gray-text);
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-/* Language List & Options */
-.language-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 32px;
+/* --- Language Grid --- */
+.lang-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 2 columns */
+  gap: 15px;
+  margin-bottom: 30px;
 }
 
-.language-option {
-  display: flex;
-  align-items: center;
-  padding: 16px 20px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 16px;
+.lang-option {
+  background: var(--white);
+  border: 2px solid var(--light-gray);
+  border-radius: 12px;
+  padding: 15px;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  outline: none;
 }
 
-.language-option:hover {
-  background-color: #f1f5f9;
+.lang-option:hover {
+  border-color: #80CBC4; /* Light teal border on hover */
+  background-color: #FAFAFA;
 }
 
-.language-option.active {
-  border-color: #0ea5e9;
-  background-color: #f0f9ff;
+/* Selected State */
+.lang-option.active {
+  border-color: var(--primary-green);
+  background-color: #E0F2F1;
+  box-shadow: 0 4px 10px rgba(0, 109, 91, 0.1);
 }
 
-/* Custom Radio Button Styles */
-.radio-container {
-  margin-right: 16px;
+.lang-native {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 5px;
 }
 
-.radio-circle {
-  width: 22px;
-  height: 22px;
-  border: 2px solid #cbd5e1;
+.lang-label {
+  font-size: 0.85rem;
+  color: var(--gray-text);
+}
+
+/* Checkmark badge */
+.checkmark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: var(--primary-green);
+  color: white;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.2s;
 }
 
-.radio-circle.checked {
-  border-color: #0ea5e9;
-}
-
-.radio-inner {
-  width: 12px;
-  height: 12px;
-  background-color: #0ea5e9;
-  border-radius: 50%;
-}
-
-.text-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.lang-title {
-  font-weight: 600;
-  color: #334155;
-  font-size: 16px;
-}
-
-.lang-desc {
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-/* Button & Footer */
-.continue-btn {
+/* --- Continue Button --- */
+.btn-continue {
   width: 100%;
   padding: 14px;
-  background-color: #0ea5e9;
-  color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 10px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  background-color: var(--primary-green);
+  color: white;
+  transition: background-color 0.3s, transform 0.1s;
 }
 
-.continue-btn:hover {
-  background-color: #0284c7;
+.btn-continue:hover:not(:disabled) {
+  background-color: var(--secondary-green);
 }
 
+.btn-continue:active:not(:disabled) {
+  transform: scale(0.98);
+}
 
-/* Mobile Responsiveness */
-@media (max-width: 480px) {
-  .page-container {
-    padding: 0;
-    background-color: white;
-  }
-  .language-card {
-    box-shadow: none;
-    height: 100vh;
-    border-radius: 0;
-    padding: 60px 24px;
+/* Disabled state */
+.btn-continue:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile responsiveness tweak */
+@media (max-width: 360px) {
+  .lang-grid {
+    grid-template-columns: 1fr; /* Stack vertically on very small phones */
   }
 }

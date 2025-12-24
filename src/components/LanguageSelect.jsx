@@ -1,82 +1,72 @@
 import React, { useState } from 'react';
-import { useNavigate } from "react-router-dom";
-
+import { useNavigate, Link } from 'react-router-dom'; // Added Link import
 import './LanguageSelect.css';
+// import logo from './assets/nirupama-logo.png'; 
 
 const LanguageSelect = () => {
-  const [selectedLanguage, setSelectedLanguage] = useState('english');
+  const [selectedLang, setSelectedLang] = useState(null);
   const navigate = useNavigate();
 
   const languages = [
-    {
-      id: 'bengali',
-      title: 'Bengali (বাংলা)',
-      description: 'Full interface in Bengali',
-      icon: 'bn'
-    },
-    {
-      id: 'english',
-      title: 'English',
-      description: 'Full interface in English',
-      icon: 'en'
-    },
-    {
-      id: 'banglish',
-      title: 'English + Bengali (Banglish)',
-      description: 'Mixed language support',
-      icon: 'eb'
-    }
+    { code: 'en', label: 'English', native: 'English' },
+    { code: 'bn', label: 'Bengali', native: 'বাংলা' }
   ];
 
   const handleContinue = () => {
-    // Navigates to the Intro page
-    if (selectedLanguage === 'english') {
-      navigate('/intro');
-    } else {
-      // You can add logic for other languages here later
-      console.log(`${selectedLanguage} selected`);
-      navigate('/intro'); 
+    if (selectedLang) {
+      console.log("Language Selected:", selectedLang);
+      // Navigate to the next page (e.g., Login)
+      navigate('/home');
     }
   };
 
   return (
-    <div className="page-container">
-      <div className="language-card">
-        {/* Logo/Icon Area */}
-        <div className="icon-header">
-          <div className="globe-icon">🌐</div>
+    <div className="lang-container">
+      <div className="lang-card">
+        <div className="lang-header">
+           <img 
+            src="nirupama1.png" 
+            alt="Nirupama Care" 
+            className="lang-logo" 
+          />
+          <h2>Welcome / স্বাগতম</h2>
+          <p>Please select your preferred language</p>
         </div>
 
-        <h2 className="title">Choose Your Language</h2>
-        <p className="subtitle">
-          Select the language you are most comfortable with. You can change this later from Settings.
-        </p>
-
-        <div className="language-list">
+        <div className="lang-grid">
           {languages.map((lang) => (
-            <div 
-              key={lang.id}
-              className={`language-option ${selectedLanguage === lang.id ? 'active' : ''}`}
-              onClick={() => setSelectedLanguage(lang.id)}
+            <button
+              key={lang.code}
+              className={`lang-option ${selectedLang === lang.code ? 'active' : ''}`}
+              onClick={() => setSelectedLang(lang.code)}
             >
-              <div className="radio-container">
-                <div className={`radio-circle ${selectedLanguage === lang.id ? 'checked' : ''}`}>
-                  {selectedLanguage === lang.id && <div className="radio-inner" />}
-                </div>
-              </div>
-              <div className="text-content">
-                <span className="lang-title">{lang.title}</span>
-                <span className="lang-desc">{lang.description}</span>
-              </div>
-            </div>
+              <span className="lang-native">{lang.native}</span>
+              <span className="lang-label">{lang.label}</span>
+              
+              {selectedLang === lang.code && (
+                <span className="checkmark">✔</span>
+              )}
+            </button>
           ))}
         </div>
 
-        <button className="continue-btn" onClick={handleContinue}>
+        {/* Using a button with onClick handler is standard for form submissions,
+           but if you strictly want a Link component structure for the button:
+        */}
+        <button 
+          className="btn-continue" 
+          disabled={!selectedLang}
+          onClick={handleContinue}
+        >
           Continue
         </button>
-      </div>
+
+        {/* Alternative: If you just want a text link fallback */}
+        {/* <div style={{marginTop: '15px'}}>
+            <Link to="/login" style={{color: '#006D5B'}}>Skip for now</Link>
+        </div> */}
       
+      </div>
     </div>
   );
 };

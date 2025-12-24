@@ -4,7 +4,10 @@ import LanguageSelect from "./components/LanguageSelect";
 import Splashscreen from "./components/Splashscreen";
 import Intro from "./components/Intro";
 import HelpCenter from "./components/internalcomponents/HelpCenter";
+import Home from "./components/Home";
+import UserProfileSetup from "./components/Userprofilesetup";
 import Login from "./components/Login";
+import About from "./components/About";
 import Otp from "./components/Otp";
 import "./App.css";
 
@@ -22,10 +25,13 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<SplashWrapper />} />
-            <Route path="/language-select" element={<LanguageSelect />} />
+            <Route path="/language" element={<LanguageSelect />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/intro" element={<Intro />} />
             <Route path="/help" element={<HelpCenter />} />
+             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/userprofilesetup" element={<UserProfileSetup />} />
             <Route path="/verify-otp" element={<Otp />} />
           </Routes>
         </main>
