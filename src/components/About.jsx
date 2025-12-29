@@ -159,10 +159,7 @@ const About = () => {
         </div>
       </section>
 
-      {/* --- Footer --- */}
-      <footer className="about-footer">
-        <p>© 2025 Nirupama Health. All rights reserved.</p>
-      </footer>
+    
     </div>
   );
 };
