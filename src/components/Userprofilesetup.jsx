@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { MapPin, User, Users, Plus, Trash2, Save, Navigation } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, User, Users, Plus, Trash2, Save, Navigation, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api'; 
 import './Userprofilesetup.css'; 
 
 const UserProfileSetup = () => {
   const navigate = useNavigate();
-  
-  // Navbar State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [isEditMode, setIsEditMode] = useState(false); // To change title text
 
   // Form States
   const [formData, setFormData] = useState({
@@ -16,15 +17,70 @@ const UserProfileSetup = () => {
   const [familyMembers, setFamilyMembers] = useState([]);
   const [currentMember, setCurrentMember] = useState({ name: '', age: '', relationship: 'Spouse' });
 
+  // ✅ NEW: Fetch Existing Data on Load
+  useEffect(() => {
+    const fetchExistingProfile = async () => {
+        try {
+            const data = await api.getPatientProfile();
+            console.log("Found existing profile:", data);
+            
+            // 1. Pre-fill Personal Info
+            setFormData({
+                fullName: data.full_name || '',
+                age: data.age || '',
+                gender: data.gender || '',
+                city: data.city || '',
+                pincode: data.pin_code || '' // Note: Backend uses 'pin_code', Frontend 'pincode'
+            });
+
+            // 2. Pre-fill Family Members
+            if (data.family_members && data.family_members.length > 0) {
+                const formattedMembers = data.family_members.map(m => ({
+                    id: Date.now() + Math.random(), // Generate ID for UI list
+                    name: m.full_name, // Backend uses 'full_name'
+                    age: m.age,
+                    relationship: m.relationship
+                }));
+                setFamilyMembers(formattedMembers);
+            }
+
+            setIsEditMode(true); // Change UI title to "Edit Profile"
+
+        } catch (error) {
+            // If 404, it means new user. Do nothing.
+            console.log("No existing profile found. Starting fresh.");
+        }
+    };
+
+    fetchExistingProfile();
+  }, []);
+
   // Handlers
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   const handleMemberChange = (e) => setCurrentMember({ ...currentMember, [e.target.name]: e.target.value });
   
   const handleUseLocation = () => {
-     if ("geolocation" in navigator) {
-       setFormData(prev => ({ ...prev, city: 'Hyderabad', pincode: '500081' }));
-       alert("Location detected!");
-     } else { alert("Geolocation not available"); }
+     if (!("geolocation" in navigator)) {
+        alert("Geolocation is not supported by your browser");
+        return;
+      }
+  
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.village || "";
+          const pincode = data.address.postcode || "";
+  
+          setFormData(prev => ({ ...prev, city: city, pincode: pincode }));
+          alert(`Location detected: ${city}, ${pincode}`);
+        } catch (error) {
+          alert("Could not determine address.");
+        }
+      });
   };
 
   const addFamilyMember = () => {
@@ -36,52 +92,66 @@ const UserProfileSetup = () => {
 
   const removeFamilyMember = (id) => setFamilyMembers(familyMembers.filter(m => m.id !== id));
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting:", { user: formData, family: familyMembers });
-    // Save completion flag
-    localStorage.setItem('profileCompleted', 'true');
-    navigate('/home');
+    setIsSubmitting(true);
+
+    try {
+      const profileData = {
+          ...formData,
+          familyMembers: familyMembers
+      };
+
+      await api.createPatientProfile(profileData);
+      
+      localStorage.setItem('profileCompleted', 'true');
+      localStorage.setItem('user_name', formData.fullName.split(' ')[0]);
+      
+      alert("Profile Saved Successfully!");
+      navigate('/view-profile', { replace: true }); // Go back to View Page
+
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("Failed to save profile.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    // STRICT ISOLATION WRAPPER
     <div id="setup-page-root">
       
-      {/* --- Navbar (Scoped) --- */}
       <nav className="setup-navbar">
         <div className="setup-nav-container">
-          <div className="setup-logo">
+          <div className="setup-logo" onClick={() => navigate('/home')}>
              <img src="nirupama1.png" className="setup-logo-img" alt="Logo" />   
           </div>
-          
           <div className="setup-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <div className={isMenuOpen ? "setup-bar open" : "setup-bar"}></div>
             <div className={isMenuOpen ? "setup-bar open" : "setup-bar"}></div>
             <div className={isMenuOpen ? "setup-bar open" : "setup-bar"}></div>
           </div>
-
           <ul className={isMenuOpen ? "setup-nav-links active" : "setup-nav-links"}>
             <li><a href="/">Home</a></li>
             <li><a href="/about">About Us</a></li>
-            <li><a href="/doctors">Find Doctors</a></li>
-            <li><a href="/help">Help</a></li>
           </ul>
         </div>
       </nav>
 
-      {/* --- Main Content --- */}
       <div className="setup-content-container">
         <div className="setup-card">
-          
           <div className="setup-header">
-            <h2><User className="icon-green" /> Complete Your Profile</h2>
+             {/* Back Button for Convenience */}
+             {isEditMode && (
+                 <button onClick={() => navigate('/view-profile')} style={{marginBottom: '10px', background: 'none', border:'none', cursor:'pointer', color:'#666', display:'flex', alignItems:'center', gap:'5px'}}>
+                     <ArrowLeft size={16}/> Cancel
+                 </button>
+             )}
+            <h2><User className="icon-green" /> {isEditMode ? "Edit Your Profile" : "Complete Your Profile"}</h2>
             <p className="sub-text">Please provide your details to continue</p>
           </div>
 
           <form onSubmit={handleSubmit} className="setup-form">
-            
-            {/* Section 1: Personal Info */}
             <div className="form-section">
               <h3 className="section-title">Personal Information</h3>
               <div className="form-grid">
@@ -95,7 +165,7 @@ const UserProfileSetup = () => {
                 </div>
                 <div className="input-group">
                   <label>Gender</label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange}>
+                  <select name="gender" value={formData.gender} onChange={handleInputChange} required>
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -105,7 +175,6 @@ const UserProfileSetup = () => {
               </div>
             </div>
 
-            {/* Section 2: Location */}
             <div className="form-section">
               <div className="section-title-row">
                 <h3 className="section-title">Location Details</h3>
@@ -116,15 +185,14 @@ const UserProfileSetup = () => {
               <div className="form-grid">
                 <div className="input-group icon-input">
                   <MapPin size={18} className="input-icon" />
-                  <input type="text" name="city" value={formData.city} onChange={handleInputChange} placeholder="City" style={{paddingLeft: '40px'}} />
+                  <input type="text" name="city" value={formData.city} onChange={handleInputChange} placeholder="City" style={{paddingLeft: '40px'}} required />
                 </div>
                 <div className="input-group">
-                  <input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} placeholder="Pincode" />
+                  <input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} placeholder="Pincode" required />
                 </div>
               </div>
             </div>
 
-            {/* Section 3: Family */}
             <div className="form-section">
               <h3 className="section-title"><Users size={20} style={{marginRight: '8px', color: 'var(--setup-primary)'}}/> Add Family Members</h3>
               <div className="family-box">
@@ -143,6 +211,7 @@ const UserProfileSetup = () => {
                       <option value="Spouse">Spouse</option>
                       <option value="Child">Child</option>
                       <option value="Parent">Parent</option>
+                      <option value="Sibling">Sibling</option>
                     </select>
                   </div>
                   <button type="button" onClick={addFamilyMember} className="setup-btn-add">
@@ -150,7 +219,6 @@ const UserProfileSetup = () => {
                   </button>
                 </div>
 
-                {/* List */}
                 {familyMembers.length > 0 && (
                   <div className="family-list">
                     {familyMembers.map((member) => (
@@ -172,10 +240,9 @@ const UserProfileSetup = () => {
               </div>
             </div>
 
-            {/* Submit */}
             <div className="action-footer">
-              <button type="submit" className="setup-btn-primary">
-                <Save size={20} /> Save & Continue
+              <button type="submit" className="setup-btn-primary" disabled={isSubmitting}>
+                <Save size={20} /> {isSubmitting ? "Saving..." : "Save Changes"}
               </button>
             </div>
 

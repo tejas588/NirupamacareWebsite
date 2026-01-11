@@ -87,7 +87,7 @@ const HelpCenter = () => {
     if (lower.includes('hello') || lower.includes('hi')) return "Hello! How can I assist you with your health journey today?";
     if (lower.includes('otp') || lower.includes('login')) return "If you're having trouble with OTP, please check your signal or try the 'Resend' button after 60 seconds.";
     if (lower.includes('book') || lower.includes('appointment')) return "To book an appointment, go to the 'Find Doctors' page, select a specialist, and choose a time slot.";
-    if (lower.includes('doctor')) return "We have over 500+ verified specialists. You can filter them by location and specialty.";
+    if (lower.includes('doctor')) return "We have verified specialists. You can filter them by location and specialty.";
     if (lower.includes('price') || lower.includes('cost') || lower.includes('fee')) return "Consultation fees vary by doctor, starting from ₹299. Lab tests have their own specific pricing.";
     if (lower.includes('lab') || lower.includes('test')) return "You can book home sample collections for lab tests from the 'Services' section.";
     return "I'm not sure about that. Please try searching in our Help Center or contact our support team via WhatsApp.";

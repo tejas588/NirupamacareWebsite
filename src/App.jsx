@@ -11,6 +11,7 @@ import About from "./components/About";
 import Security from "./components/Security";
 import Otp from "./components/Otp";
 import Doctors from "./components/Doctors";
+import UserProfileView from "./components/Userprofileview";
 import AppointmentBooking from "./components/AppointmentBooking";
 import "./App.css";
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/security" element={<Security />} />
             <Route path="/userprofilesetup" element={<UserProfileSetup />} />
+            <Route path="/view-profile" element={<UserProfileView />} />
             <Route path="/verify-otp" element={<Otp />} />
           </Routes>
         </main>

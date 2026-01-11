@@ -319,3 +319,376 @@
     width: 100%;
   }
 }
+
+/*changes...*/
+/* --- PROFILE NAV WIDGET --- */
+.nav-profile-widget {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 40px;
+    transition: background 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.nav-profile-widget:hover {
+    background-color: #f0f7f4; /* Light green tint */
+    border-color: #e0e0e0;
+}
+
+.nav-profile-text {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    line-height: 1.2;
+}
+
+.nav-greeting {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.nav-username {
+    font-size: 0.95rem;
+    color: #0b5c4b; /* Brand dark green */
+    font-weight: 700;
+}
+
+.nav-profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #27ae60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e8f5e9;
+}
+
+.nav-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #27ae60;
+    text-transform: uppercase;
+}
+
+/* Mobile Profile adjustments */
+.mobile-profile-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.avatar-placeholder.small {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+    background-color: #27ae60;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/*changes for profile view and logout*/
+/* --- PROFILE DROPDOWN STYLES --- */
+.nav-profile-container {
+    position: relative; /* Anchor for the dropdown */
+}
+
+.nav-profile-widget {
+    /* (Existing styles, adding selectability) */
+    user-select: none; 
+}
+
+.nav-profile-widget.active {
+    background-color: #e8f5e9;
+    border-color: #c8e6c9;
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: 110%; /* Just below the widget */
+    right: 0;
+    width: 220px;
+    background-color: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    padding: 8px 0;
+    z-index: 1000;
+    border: 1px solid #eee;
+    transform-origin: top right;
+}
+
+.dropdown-item {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+    color: #0b5c4b;
+}
+
+.dropdown-item span {
+    font-size: 1.1rem;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #eee;
+    margin: 6px 0;
+}
+
+.dropdown-item.logout {
+    color: #d32f2f;
+}
+
+.dropdown-item.logout:hover {
+    background-color: #ffebee;
+}
+
+/* Simple Animation */
+.fade-in-fast {
+    animation: fadeInFast 0.2s ease-out forwards;
+}
+
+@keyframes fadeInFast {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/*doctor nirupama*/
+/* --- Updated Symptom Section --- */
+#home-page-root .symptom-section {
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); /* Softer background */
+  display: flex;
+  justify-content: center;
+}
+
+#home-page-root .symptom-container {
+  max-width: 1000px;
+  width: 100%;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  display: flex;
+  overflow: visible; /* Changed to visible so character can pop out slightly if needed */
+  position: relative;
+}
+
+/* Left Side */
+#home-page-root .symptom-left {
+  flex: 1.2;
+  padding: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* Right Side (Character Stage) */
+#home-page-root .symptom-right {
+  flex: 1;
+  background: transparent; /* Removed gray bg */
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end; /* Align character to bottom */
+  position: relative;
+  min-height: 450px;
+}
+
+/* --- THE CHARACTER --- */
+#home-page-root .character-wrapper {
+  position: relative;
+  width: 250px;
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+#home-page-root .ai-character {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));
+  /* The Floating Animation */
+  animation: floatCharacter 4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+#home-page-root .character-shadow {
+  position: absolute;
+  bottom: 5px;
+  width: 120px;
+  height: 15px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 50%;
+  animation: shadowScale 4s ease-in-out infinite;
+}
+
+/* Character Reactions */
+#home-page-root .ai-character.thinking {
+  animation: pulseThink 1s ease-in-out infinite alternate;
+  filter: brightness(1.1);
+}
+
+/* --- THE SPEECH BUBBLE --- */
+#home-page-root .speech-bubble {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 20px;
+  position: relative;
+  width: 280px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  border: 2px solid #eef2f6;
+  text-align: center;
+  margin-bottom: 10px;
+  /* Entrance Animation */
+  animation: bubblePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* The triangle at the bottom of the bubble */
+#home-page-root .bubble-arrow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; 
+  height: 0; 
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #ffffff;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,0.05));
+}
+
+#home-page-root .bubble-content p {
+  color: #555;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Result Styles inside Bubble */
+#home-page-root .bubble-title {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+#home-page-root .bubble-specialist {
+  color: #0f9d58; /* Brand Green */
+  font-size: 1.8rem;
+  margin: 5px 0 10px 0;
+}
+
+#home-page-root .bubble-desc {
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+#home-page-root .btn-bubble-action {
+  background: #0f9d58;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: 0.2s;
+}
+#home-page-root .btn-bubble-action:hover {
+  background: #0b8043;
+}
+
+/* Typing Indicator (Three dots) */
+#home-page-root .typing-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #ccc;
+  border-radius: 50%;
+  margin: 0 3px;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+#home-page-root .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+#home-page-root .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+/* --- ANIMATIONS --- */
+@keyframes floatCharacter {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes shadowScale {
+  0% { transform: scale(1); opacity: 0.1; }
+  50% { transform: scale(0.8); opacity: 0.05; } /* Shadow gets smaller when she floats up */
+  100% { transform: scale(1); opacity: 0.1; }
+}
+
+@keyframes pulseThink {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.02); }
+}
+
+@keyframes bubblePop {
+  0% { opacity: 0; transform: translateY(20px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes typing {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  #home-page-root .symptom-container {
+    flex-direction: column-reverse; /* Put character on top on mobile? Or bottom. Let's do bottom of input. */
+  }
+  
+  #home-page-root .symptom-right {
+    padding-top: 0;
+    min-height: auto;
+  }
+  
+  #home-page-root .character-wrapper {
+    width: 150px; /* Smaller on mobile */
+  }
+  
+  #home-page-root .speech-bubble {
+    width: 100%;
+  }
+}

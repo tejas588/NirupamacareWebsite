@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase'; 
+import { api } from '../api'; // ✅ 1. IMPORT API (This was missing)
 import './Home.css';
 
 const Home = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  // --- Dropdown State ---
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null); 
 
   // --- Symptom Checker State ---
   const [symptomDesc, setSymptomDesc] = useState('');
@@ -15,17 +21,79 @@ const Home = () => {
   const [location, setLocation] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // --- Auth State ---
+  // --- Auth & Profile State ---
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [userProfile, setUserProfile] = useState({ name: 'User', avatar: '' });
   
   useEffect(() => {
     setLoaded(true);
+    
+    // 1. Check Login Token
     const token = localStorage.getItem('token');
+    const storedName = localStorage.getItem('user_name');
+    
     if (token) {
       setIsLoggedIn(true);
+      
+      // 2. Set Initial Optimistic Name (Fast, but might be "User")
+      let finalName = "User";
+      if (storedName) {
+          finalName = storedName;
+      } else if (auth.currentUser && auth.currentUser.displayName) {
+          finalName = auth.currentUser.displayName;
+      }
+
+      setUserProfile({
+          name: finalName,
+          avatar: auth.currentUser?.photoURL || ""
+      });
+
+      // ✅ 3. THE TRAFFIC COP LOGIC (Crucial Integration Step)
+      // We ask the backend: "Does this user have a profile?"
+      api.getPatientProfile()
+        .then((profile) => {
+            // SUCCESS: Profile exists! Show real name.
+            console.log("✅ Profile Verified:", profile);
+            const realName = profile.full_name.split(' ')[0]; 
+            
+            setUserProfile(prev => ({ ...prev, name: realName }));
+            localStorage.setItem('user_name', realName);
+            localStorage.setItem('profileCompleted', 'true');
+        })
+        .catch((err) => {
+            // FAILURE: Check if it's a 404 (Missing Profile)
+            console.log("Profile check failed:", err);
+            
+            if (err.response && err.response.status === 404) {
+                console.log("🚨 No profile found! Redirecting to setup...");
+                // Force user to create a profile immediately
+                navigate('/userprofilesetup'); 
+            }
+        });
     }
-  }, []);
+
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+  }, [navigate]); // Added navigate dependency
+
+  // ... (Rest of your code stays exactly the same) ...
+  // ... Paste the rest of your component below (Helper functions + Return statement) ...
+
+  // --- Helper: Get Greeting based on time ---
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
 
   const handleAnalyzeSymptoms = async () => {
     if (!isLoggedIn) {
@@ -41,7 +109,6 @@ const Home = () => {
     setIsAnalyzing(true);
     setSuggestion(null);
 
-    // Mock API call simulation
     setTimeout(() => {
         const text = symptomDesc.toLowerCase();
         let doctorType = "General Physician";
@@ -78,21 +145,21 @@ const Home = () => {
 
   const handleLogout = () => {
       localStorage.removeItem('token');
+      localStorage.removeItem('user_name'); 
+      localStorage.removeItem('mongo_user_id');
       setIsLoggedIn(false);
-      setIsMenuOpen(false); // Close menu on logout
+      setIsMenuOpen(false); 
       navigate('/login');
   };
 
   const handleNavigation = (path) => {
       navigate(path);
-      setIsMenuOpen(false); // Close menu on navigate
+      setIsMenuOpen(false); 
   };
 
   return (
-    // STRICT ISOLATION WRAPPER
     <div id="home-page-root">
       
-      {/* --- Navbar (Scoped Classes) --- */}
       <nav className="home-navbar">
         <div className="home-nav-container">
           <div className="home-nav-left">
@@ -100,7 +167,6 @@ const Home = () => {
               <img src="nirupama1.png" alt="" className='home-logo-img'/>
             </div>
             
-            {/* Desktop Links */}
             <ul className="home-primary-nav desktop-only">
               <li><a href="/doctors" className="active-link">Get Doctor</a></li>
               <li><a href="/video-consult">Video Consult</a></li>
@@ -108,16 +174,60 @@ const Home = () => {
             </ul>
           </div>
 
-          {/* Desktop Right Side */}
           <div className="home-nav-right desktop-only">
-            <a href="/for-doctors" className="nav-link-secondary">For doctors</a>
-            <a href="/security" className="nav-link-secondary">Security</a>
-            <a href="/help" className="nav-link-secondary">Help</a>
+            
+            {!isLoggedIn && (
+               <>
+                 <a href="/for-doctors" className="nav-link-secondary">For doctors</a>
+                 <a href="/security" className="nav-link-secondary">Security</a>
+                 <a href="/help" className="nav-link-secondary">Help</a>
+               </>
+            )}
             
             {isLoggedIn ? (
-                <button className="home-btn-login" onClick={handleLogout}>
-                  Logout
-                </button>
+                <div className="nav-profile-container" ref={profileMenuRef}>
+                    <div 
+                        className={`nav-profile-widget ${showProfileMenu ? 'active' : ''}`} 
+                        onClick={() => setShowProfileMenu(!showProfileMenu)}
+                    >
+                        <div className="nav-profile-text">
+                            <span className="nav-greeting">{getGreeting()},</span>
+                            <span className="nav-username">{userProfile.name}</span>
+                        </div>
+                        <div className="nav-profile-avatar">
+                            {userProfile.avatar ? (
+                                <img src={userProfile.avatar} alt="Profile" />
+                            ) : (
+                                <div className="avatar-placeholder">
+                                    {userProfile.name.charAt(0)}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {showProfileMenu && (
+                        <div className="profile-dropdown-menu fade-in-fast">
+                            <div className="dropdown-item" onClick={() => navigate('/view-profile')}>
+                                <span>👤</span> View My Profile
+                            </div>
+                            <div className="dropdown-item" onClick={() => navigate('/appointments')}>
+                                <span>📅</span> My Appointments
+                            </div>
+                            <div className="dropdown-item" onClick={() => navigate('/security')}>
+                                <span>🛡️</span> Security
+                            </div>
+                            <div className="dropdown-item" onClick={() => navigate('/help')}>
+                                <span>❓</span> Help
+                            </div>
+                            <div className="dropdown-divider"></div>
+                            <div className="dropdown-item logout" onClick={handleLogout}>
+                                <span>🚪</span> Logout
+                            </div>
+                            
+                            
+                        </div>
+                    )}
+                </div>
             ) : (
                 <button className="home-btn-login" onClick={() => navigate('/login')}>
                   Login / Signup
@@ -125,7 +235,6 @@ const Home = () => {
             )}
           </div>
 
-          {/* Mobile Hamburger */}
           <div className="home-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <div className={isMenuOpen ? "home-bar open" : "home-bar"}></div>
             <div className={isMenuOpen ? "home-bar open" : "home-bar"}></div>
@@ -133,14 +242,18 @@ const Home = () => {
           </div>
         </div>
 
-        {/* --- MOBILE MENU DROPDOWN (New) --- */}
         <div className={`home-mobile-menu ${isMenuOpen ? 'open' : ''}`}>
+            {isLoggedIn && (
+                 <div className="mobile-profile-header">
+                     <div className="avatar-placeholder small">{userProfile.name.charAt(0)}</div>
+                     <span style={{marginLeft: '10px', fontWeight: 'bold'}}>{userProfile.name}</span>
+                 </div>
+            )}
             <a onClick={() => handleNavigation('/doctors')}>Get Doctor</a>
             <a onClick={() => handleNavigation('/video-consult')}>Video Consult</a>
             <a onClick={() => handleNavigation('/lab-tests')}>Book Lab Test</a>
             <hr className="mobile-divider"/>
-            <a onClick={() => handleNavigation('/for-doctors')}>For Doctors</a>
-            <a onClick={() => handleNavigation('/security')}>Security</a>
+            <a onClick={() => handleNavigation('/view-profile')}>View Profile</a>
             <a onClick={() => handleNavigation('/help')}>Help</a>
             <div className="mobile-auth-btn">
                 {isLoggedIn ? (
@@ -152,7 +265,6 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* --- HERO SECTION --- */}
       <header className="hero-section">
         <div className={`hero-content ${loaded ? 'fade-in-up' : ''}`}>
           <div className="hero-text">
@@ -189,10 +301,10 @@ const Home = () => {
             <div className="hero-stats">
               <div className="hero-badges">
                 <div className="badge-item">
-                   <span className="badge-icon">🛡️</span> <span>Data Privacy</span>
+                    <span className="badge-icon">🛡️</span> <span>Data Privacy</span>
                 </div>
                 <div className="badge-item">
-                   <span className="badge-icon">👨‍⚕️</span> <span>Verified Doctors</span>
+                    <span className="badge-icon">👨‍⚕️</span> <span>Verified Doctors</span>
                 </div>
                 <div className="badge-item">
                     <span className="badge-icon">⚡</span> <span>Instant Booking</span>
@@ -212,19 +324,19 @@ const Home = () => {
         </div>
       </header>
 
-      {/* --- SYMPTOM CHECKER --- */}
       <section className="symptom-section">
         <div className="symptom-container">
+          {/* LEFT SIDE: INPUT */}
           <div className="symptom-left">
-            <h2>Not sure who to consult?</h2>
-            <p>Describe your symptoms below and our AI assistant will suggest the right specialist for you.</p>
+            <h2>Chat with Dr. Nirupama 👩‍⚕️</h2>
+            <p>Describe your symptoms, and our junior assistant will guide you to the right specialist.</p>
             
             <textarea 
               className="symptom-input" 
               rows="3"
               placeholder={isLoggedIn 
                 ? "E.g., I have a severe toothache and sensitivity to cold water..." 
-                : "Please login to describe your symptoms..."}
+                : "Please login to consult with Nirupama..."}
               value={symptomDesc}
               onChange={(e) => setSymptomDesc(e.target.value)}
             ></textarea>
@@ -235,33 +347,55 @@ const Home = () => {
               disabled={isAnalyzing}
             >
               {isAnalyzing 
-                ? 'Analyzing...' 
-                : (isLoggedIn ? 'Analyze Symptoms' : 'Login to Analyze')}
+                ? 'Consulting Database...' 
+                : (isLoggedIn ? 'Ask Nirupama' : 'Login to Ask')}
             </button>
           </div>
 
+          {/* RIGHT SIDE: CHARACTER & SPEECH BUBBLE */}
           <div className="symptom-right">
-            {suggestion ? (
-              <div className="suggestion-card fade-in">
-                <div className="suggestion-icon">🩺</div>
-                <h3>You should see a:</h3>
-                <h2 className="doctor-type">{suggestion.type}</h2>
-                <p>{suggestion.message}</p>
-                <button className="btn-book-now" onClick={() => navigate(`/doctors?specialization=${suggestion.type}`)}>
-                  Book {suggestion.type}
-                </button>
-              </div>
-            ) : (
-              <div className="suggestion-placeholder">
-                <span style={{fontSize: '3rem'}}>🤖</span>
-                <p>Results will appear here</p>
-              </div>
-            )}
+            
+            {/* 1. The Speech Bubble */}
+            <div className={`speech-bubble ${suggestion ? 'has-result' : ''}`}>
+               {isAnalyzing ? (
+                  <div className="typing-indicator">
+                    <span></span><span></span><span></span>
+                  </div>
+               ) : suggestion ? (
+                  /* Result View */
+                  <div className="bubble-content fade-in">
+                    <span className="bubble-title">I suggest seeing a:</span>
+                    <h3 className="bubble-specialist">{suggestion.type}</h3>
+                    <p className="bubble-desc">"{suggestion.message}"</p>
+                    <button className="btn-bubble-action" onClick={() => navigate(`/doctors?specialization=${suggestion.type}`)}>
+                      Find {suggestion.type}s
+                    </button>
+                  </div>
+               ) : (
+                  /* Idle View */
+                  <div className="bubble-content">
+                    <p><strong>"Hi, I'm Nirupama!"</strong><br/> I'm here to help. Tell me how you're feeling today!</p>
+                  </div>
+               )}
+               {/* Little triangle for speech bubble */}
+               <div className="bubble-arrow"></div>
+            </div>
+
+            {/* 2. The Girl Character Image */}
+            <div className="character-wrapper">
+                {/* Using a 3D cartoon doctor image */}
+                <img 
+                  src="image-removebg-preview.png" 
+                  alt="Dr Nirupama" 
+                  className={`ai-character ${isAnalyzing ? 'thinking' : ''}`}
+                />
+                <div className="character-shadow"></div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* --- SERVICES --- */}
       <section className="services-section">
         <div className="section-header">
           <h2>Top Specialties</h2>
@@ -284,18 +418,17 @@ const Home = () => {
             <h3>Nutrition</h3>
             <p>Diet & Wellness</p>
           </div>
-          <div className="service-card">
+          <div className="service-card"> 
             <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" alt="Surgery" />
-            <h3>Surgery</h3>
+            <h3>General Medecine</h3>
             <p>Safe procedures</p>
           </div>
         </div>
       </section>
 
-      {/* --- CTA BANNER --- */}
       <section className="cta-banner">
         <div className="cta-content">
-          <h2>Download the Nirupama App</h2>
+          <h2>Download the Nirupama Care App</h2>
           <p>Get access to doctors, lab reports, and prescriptions on the go.</p>
           <div className="app-buttons">
             <button className="btn-store">App Store</button>
@@ -303,7 +436,7 @@ const Home = () => {
           </div>
         </div>
         <div className="cta-image">
-             <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=80" alt="Mobile App" />
+              <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=80" alt="Mobile App" />
         </div>
       </section>
     </div>

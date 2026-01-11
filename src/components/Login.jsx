@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword 
+} from "firebase/auth"; 
+import { auth, googleProvider } from "../firebase"; 
+import { api } from "../api"; 
 import './Login.css';
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -18,87 +26,134 @@ const AuthPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (isLogin) {
-      console.log('Login logic:', { 
-        identifier: formData.identifier, 
-        password: formData.password 
-      });
-
-      // 1. Simulate Token
-      const fakeToken = "user_token_12345"; 
-      localStorage.setItem('token', fakeToken);
-
-      // 2. Navigate to Home
+  // --- SHARED HELPER: Send Token to Backend ---
+  const handleBackendSync = async (user) => {
+    try {
+      const token = await user.getIdToken();
+      
+      // Call our updated API
+      const response = await api.authenticate(token, formData);
+      
+      console.log("✅ Backend Sync Success:", response);
+      
+      // Save the token so Home.jsx knows we are logged in
+      localStorage.setItem('token', token); 
+      
+      // Save User Details
+      localStorage.setItem('mongo_user_id', response.account.id);
+      localStorage.setItem('user_role', response.account.role);
+      
+      // Save name for greeting (optimistic update)
+      if (formData.fullName) {
+          localStorage.setItem('user_name', formData.fullName.split(' ')[0]);
+      } else if (user.displayName) {
+          localStorage.setItem('user_name', user.displayName.split(' ')[0]);
+      }
+      
+      // ❌ REMOVED ALERT
+      // alert(`Welcome, ${response.account.email}!`);
+      
+      // 🚀 Send everyone to Home first.
+      // Home.jsx will check if they have a profile. 
+      // If NOT, Home.jsx will automatically redirect them to /userprofilesetup.
       navigate('/home'); 
 
-    } else {
-      if (formData.password !== formData.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
+    } catch (err) {
+      console.error("Backend Sync Failed:", err);
+      setError("Connected to Google, but Backend failed. Check console.");
+    }
+  };
+
+  // --- 1. GOOGLE LOGIN ---
+  const handleGoogleLogin = async () => {
+    setError("");
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      await handleBackendSync(result.user);
+    } catch (err) {
+      console.error("Google Login Error:", err);
+      setError("Google Sign-In failed. Please try again.");
+    }
+  };
+
+  // --- 2. EMAIL/PASSWORD LOGIN & REGISTER ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const email = formData.identifier; 
+    const password = formData.password;
+
+    try {
+      let userCredential;
+
+      if (isLogin) {
+        // Login
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        // Register
+        if (password !== formData.confirmPassword) {
+          setError("Passwords do not match!");
+          return;
+        }
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
       }
-      console.log('Signup logic:', formData);
-      navigate('/userprofilesetup');
+
+      // Sync with Backend
+      await handleBackendSync(userCredential.user);
+
+    } catch (err) {
+      console.error("Auth Error:", err);
+      if (err.code === "auth/invalid-email") setError("Invalid email address.");
+      else if (err.code === "auth/user-not-found") setError("Account not found.");
+      else if (err.code === "auth/wrong-password") setError("Incorrect password.");
+      else if (err.code === "auth/email-already-in-use") setError("Email already used.");
+      else setError(err.message);
     }
   };
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
-    setFormData({
-      fullName: '',
-      identifier: '',
-      password: '',
-      confirmPassword: ''
-    });
+    setError("");
+    setFormData({ fullName: '', identifier: '', password: '', confirmPassword: '' });
   };
 
   return (
-    // UNIQUE ID WRAPPER FOR ISOLATION
     <div id="auth-page-root">
-      
-      {/* --- Navbar Section (Scoped) --- */}
       <nav className="auth-navbar">
         <div className="auth-nav-container">
           <div className="auth-logo">
              <img src="nirupama1.png" className="auth-logo-icon" alt="Logo" />   
           </div>
-          
           <div className="auth-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
             <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
             <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
           </div>
-
           <ul className={isMenuOpen ? "auth-nav-links active" : "auth-nav-links"}>
             <li><a href="/home">Home</a></li>
             <li><a href="/about">About Us</a></li>
-            <li><a href="/doctors">Find Doctors</a></li>
-            <li><a href="/help">Help</a></li>
           </ul>
         </div>
       </nav>
 
-      {/* --- Auth Form Section --- */}
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
             <h2>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
             <p className="auth-sub-text">
-              {isLogin 
-                ? 'Please login to access your health dashboard' 
-                : 'Join us to manage your health journey'}
+              {isLogin ? 'Login to your dashboard' : 'Join us to manage your health'}
             </p>
           </div>
+
+          {error && <div style={{color: '#d32f2f', textAlign: 'center', marginBottom: '10px'}}>{error}</div>}
 
           <form onSubmit={handleSubmit}>
             {!isLogin && (
               <div className="auth-input-group fade-in">
-                <label htmlFor="fullName">Full Name</label>
+                <label>Full Name</label>
                 <input
                   type="text"
-                  id="fullName"
                   name="fullName"
                   placeholder="John Doe"
                   value={formData.fullName}
@@ -109,12 +164,11 @@ const AuthPage = () => {
             )}
 
             <div className="auth-input-group">
-              <label htmlFor="identifier">Mobile Number or Email</label>
+              <label>Email Address</label>
               <input
-                type="text"
-                id="identifier"
+                type="email"
                 name="identifier"
-                placeholder="e.g. 9876543210 or user@email.com"
+                placeholder="user@example.com"
                 value={formData.identifier}
                 onChange={handleChange}
                 required
@@ -122,12 +176,11 @@ const AuthPage = () => {
             </div>
 
             <div className="auth-input-group">
-              <label htmlFor="password">Password</label>
+              <label>Password</label>
               <input
                 type="password"
-                id="password"
                 name="password"
-                placeholder="Enter your password"
+                placeholder="Enter password"
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -136,12 +189,11 @@ const AuthPage = () => {
 
             {!isLogin && (
               <div className="auth-input-group fade-in">
-                <label htmlFor="confirmPassword">Confirm Password</label>
+                <label>Confirm Password</label>
                 <input
                   type="password"
-                  id="confirmPassword"
                   name="confirmPassword"
-                  placeholder="Re-enter your password"
+                  placeholder="Confirm password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required={!isLogin}
@@ -149,30 +201,22 @@ const AuthPage = () => {
               </div>
             )}
 
-            {isLogin && (
-              <div className="auth-actions">
-                <div className="auth-remember">
-                  <input type="checkbox" id="remember" />
-                  <label htmlFor="remember">Remember me</label>
-                </div>
-                <a href="/forgot-password" className="auth-forgot">Forgot Password?</a>
-              </div>
-            )}
-
             <button type="submit" className="auth-btn-primary">
               {isLogin ? 'Login' : 'Register'}
             </button>
 
-            {isLogin && (
-              <>
-                <div className="auth-divider">
-                  <span>OR</span>
-                </div>
-                <button type="button" className="auth-btn-secondary">
-                  Login with OTP
-                </button>
-              </>
-            )}
+            <div className="auth-divider">
+              <span>OR</span>
+            </div>
+            
+            <button 
+                type="button" 
+                className="auth-btn-secondary"
+                onClick={handleGoogleLogin}
+                style={{ marginBottom: '10px', backgroundColor: '#db4437', color: 'white', borderColor: '#db4437' }}
+            >
+              Sign in with Google
+            </button>
           </form>
 
           <div className="auth-footer">
