@@ -114,19 +114,19 @@ const Home = () => {
         let doctorType = "General Physician";
         let reason = "For a general checkup and initial diagnosis.";
   
-        if (text.includes('tooth') || text.includes('gum') || text.includes('jaw')) {
+        if (text.includes('tooth') || text.includes('gum') || text.includes('jaw') || text.includes('cavity') ||text.includes('oral')) {
           doctorType = "Dentist";
           reason = "It sounds like a dental issue.";
-        } else if (text.includes('heart') || text.includes('chest') || text.includes('beat')) {
+        } else if (text.includes('heart') || text.includes('chest') || text.includes('beat') || text.includes('palpitation')|| text.includes('breathing')) {
           doctorType = "Cardiologist";
           reason = "Chest or heart issues require a specialist.";
-        } else if (text.includes('skin') || text.includes('rash') || text.includes('itch')) {
+        } else if (text.includes('skin') || text.includes('rash') || text.includes('itch') || text.includes('acne') || text.includes('spot')) {
           doctorType = "Dermatologist";
           reason = "For skin related conditions.";
-        } else if (text.includes('bone') || text.includes('fracture') || text.includes('joint')) {
+        } else if (text.includes('bone') || text.includes('fracture') || text.includes('joint') || text.includes('knee') || text.includes('back') || text.includes('muscle')) {
           doctorType = "Orthopedic";
           reason = "For bone and joint health.";
-        } else if (text.includes('stomach') || text.includes('digest') || text.includes('vomit')) {
+        } else if (text.includes('stomach') || text.includes('digest') || text.includes('vomit') || text.includes('belly') || text.includes('acid') || text.includes('gas')) {
           doctorType = "Gastroenterologist";
           reason = "For digestive system issues.";
         }
