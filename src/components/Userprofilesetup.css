@@ -232,9 +232,10 @@
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
+  
   #setup-page-root .setup-menu-toggle { display: flex; }
   #setup-page-root .setup-nav-links {
-    position: absolute; top: 80px; left: 0; width: 100%;
+    position: absolute; top: 59px; left: 0; width: 100%;
     background-color: var(--setup-white);
     flex-direction: column; align-items: center; padding: 20px 0;
     transform: translateY(-150%); transition: transform 0.3s ease;
@@ -249,3 +250,6 @@
   #setup-page-root .setup-content-container { padding: 20px 10px; }
   #setup-page-root .setup-card { padding: 25px; }
 }
+
+
+

@@ -60,27 +60,69 @@ const UserProfileSetup = () => {
   const handleMemberChange = (e) => setCurrentMember({ ...currentMember, [e.target.name]: e.target.value });
   
   const handleUseLocation = () => {
-     if (!("geolocation" in navigator)) {
-        alert("Geolocation is not supported by your browser");
-        return;
-      }
-  
-      navigator.geolocation.getCurrentPosition(async (position) => {
+    // 1. Check if browser supports Geolocation
+    if (!("geolocation" in navigator)) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    // 2. Start Loading Visuals (Re-using your existing isSubmitting state)
+    setIsSubmitting(true);
+
+    // 3. Define options (Critical for Mobile)
+    const options = {
+      enableHighAccuracy: true, // Forces GPS usage on phones
+      timeout: 10000,           // Wait up to 10s for satellite lock
+      maximumAge: 0             // Force fresh data
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
         const { latitude, longitude } = position.coords;
         try {
+          // 4. Fetch address from OpenStreetMap (Nominatim)
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
           const data = await response.json();
-          const city = data.address.city || data.address.town || data.address.village || "";
+          
+          // 5. Extract City/Town/Village safely
+          const city = data.address.city || data.address.town || data.address.village || data.address.county || "";
           const pincode = data.address.postcode || "";
-  
+
+          // 6. Update Form Data
           setFormData(prev => ({ ...prev, city: city, pincode: pincode }));
-          alert(`Location detected: ${city}, ${pincode}`);
+          
         } catch (error) {
-          alert("Could not determine address.");
+          console.error("Geocoding error:", error);
+          alert("Could not fetch address details from coordinates.");
+        } finally {
+          // 7. Stop Loading (Runs whether fetch succeeds or fails)
+          setIsSubmitting(false);
         }
-      });
+      },
+      (error) => {
+        // 8. Stop Loading immediately if GPS fails
+        setIsSubmitting(false);
+
+        // 9. Handle specific mobile errors
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            alert("Permission denied. Please enable Location Services in your browser settings.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert("Location unavailable. Please ensure your GPS is turned on.");
+            break;
+          case error.TIMEOUT:
+            alert("Location request timed out. Please try again in an open area.");
+            break;
+          default:
+            alert("An unknown error occurred.");
+            break;
+        }
+      },
+      options // <--- Important: Pass the mobile options here
+    );
   };
 
   const addFamilyMember = () => {
@@ -108,7 +150,7 @@ const UserProfileSetup = () => {
       localStorage.setItem('user_name', formData.fullName.split(' ')[0]);
       
       alert("Profile Saved Successfully!");
-      navigate('/view-profile', { replace: true }); // Go back to View Page
+      navigate('/home', { replace: true }); // Go back to View Page
 
     } catch (error) {
       console.error("Failed to save profile:", error);
