@@ -1,51 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import DoctorCard from './DoctorCard';
+import { api } from '../api'; // ✅ Use your centralized API file
 import './Doctors.css';
 
 const Doctors = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
-    // Get initial values from URL or default to empty
+    // Get initial values from URL
     const initialLocation = searchParams.get('location') || '';
     const initialSpec = searchParams.get('specialization') || '';
 
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Local state for the input fields
     const [filters, setFilters] = useState({
         location: initialLocation,
         specialization: initialSpec
     });
 
+    // Sync local state with URL params if they change externally (e.g. back button)
     useEffect(() => {
+        setFilters({
+            location: searchParams.get('location') || '',
+            specialization: searchParams.get('specialization') || ''
+        });
         fetchDoctors();
-    }, [searchParams]); // Refetch when URL params change
+    }, [searchParams]);
 
     const fetchDoctors = async () => {
         setLoading(true);
         try {
-            // Construct query string
-            const params = new URLSearchParams();
-            if (filters.location) params.append('location', filters.location);
-            if (filters.specialization) params.append('specialization', filters.specialization);
+            // Get params directly from the current URL object to be safe
+            const currentParams = new URLSearchParams(window.location.search);
 
-            // Allow overrides from current state if URL didn't update yet (optional optimization)
-            // But relying on URL is safer for deep linking. 
-            // Here we prioritize the *logic* of fetching.
-            // Let's use the URL params strictly for the fetch to ensure back-button works.
-            const urlParams = new URLSearchParams(window.location.search);
+            // ✅ Fix 1: Use the centralized API function if available, 
+            // or fetch directly if you haven't added a specific 'searchDoctors' function yet.
+            // Below is the direct fetch method compatible with your backend:
 
-            const response = await fetch(`http://localhost:5000/api/doctors?${urlParams.toString()}`);
+            // We append a timestamp to prevent caching old results
+            const query = currentParams.toString();
+            const cacheBuster = `_t=${new Date().getTime()}`;
+            const finalQuery = query ? `${query}&${cacheBuster}` : `?${cacheBuster}`;
+
+            // Make sure this matches your actual backend URL (from api.js)
+            const API_BASE = "https://api-48aa.vercel.app/v1";
+
+            // Note: Your backend endpoint might be /doctor/list based on Swagger
+            const response = await fetch(`${API_BASE}/doctor/list?${finalQuery}`);
             const data = await response.json();
 
-            if (data.success) {
+            // Handle different response structures (Array vs Object with data key)
+            if (Array.isArray(data)) {
+                setDoctors(data);
+            } else if (data.data && Array.isArray(data.data)) {
                 setDoctors(data.data);
             } else {
                 setDoctors([]);
             }
+
         } catch (error) {
             console.error("Failed to fetch doctors:", error);
+            setDoctors([]);
         } finally {
             setLoading(false);
         }
@@ -53,10 +71,11 @@ const Doctors = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // Update URL to trigger the useEffect
         const params = new URLSearchParams();
         if (filters.location) params.append('location', filters.location);
         if (filters.specialization) params.append('specialization', filters.specialization);
+
+        // Pushing to history triggers the useEffect above
         navigate(`/doctors?${params.toString()}`);
     };
 
@@ -83,17 +102,20 @@ const Doctors = () => {
 
             <div className="doctors-grid">
                 {loading ? (
-                    <div className="loading-state">Loading doctors...</div>
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Loading doctors...</p>
+                    </div>
                 ) : (
                     <>
                         {doctors.length > 0 ? (
                             doctors.map(doc => (
-                                <DoctorCard key={doc.id} doctor={doc} />
+                                <DoctorCard key={doc.id || doc._id} doctor={doc} />
                             ))
                         ) : (
                             <div className="empty-state">
-                                <h3>No doctors found nearby.</h3>
-                                <p>Try changing your location or filters.</p>
+                                <h3>No doctors found matching your criteria.</h3>
+                                <p>Try clearing filters or changing your location.</p>
                             </div>
                         )}
                     </>

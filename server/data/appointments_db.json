@@ -94,5 +94,17 @@
     "consultationType": "Clinic Visit",
     "status": "booked",
     "createdAt": "2026-01-09T16:24:27.456Z"
+  },
+  {
+    "id": "appt_1768626657906",
+    "doctorId": "doc_001",
+    "doctorName": "Dr. Arindam Sharma",
+    "userId": "guest_user_001",
+    "userName": "Supriti Mishra",
+    "date": "2026-01-17",
+    "timeSlot": "10:45 AM",
+    "consultationType": "Clinic Visit",
+    "status": "booked",
+    "createdAt": "2026-01-17T05:10:57.906Z"
   }
 ]

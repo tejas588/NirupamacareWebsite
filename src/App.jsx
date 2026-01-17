@@ -11,6 +11,9 @@ import About from "./components/About";
 import Security from "./components/Security";
 import Otp from "./components/Otp";
 import Doctors from "./components/Doctors";
+import DoctorProfileSetup from './components/DoctorProfileSetup';
+import DoctorAuth from './components/DoctorAuth';
+import DoctorDashboard from './components/DoctorDashboard';
 import UserProfileView from "./components/UserProfileView";
 import AppointmentBooking from "./components/AppointmentBooking";
 import "./App.css";
@@ -38,7 +41,10 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/doctor-login" element={<DoctorAuth />} />
+            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
             <Route path="/userprofilesetup" element={<UserProfileSetup />} />
+            <Route path="/doctor-setup" element={<DoctorProfileSetup />} />
             <Route path="/view-profile" element={<UserProfileView />} />
             <Route path="/verify-otp" element={<Otp />} />
           </Routes>
