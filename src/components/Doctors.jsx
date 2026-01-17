@@ -33,31 +33,19 @@ const Doctors = () => {
     const fetchDoctors = async () => {
         setLoading(true);
         try {
-            // Get params directly from the current URL object to be safe
+            // Get current URL params
             const currentParams = new URLSearchParams(window.location.search);
+            const location = currentParams.get('location') || '';
+            const specialization = currentParams.get('specialization') || '';
 
-            // ✅ Fix 1: Use the centralized API function if available, 
-            // or fetch directly if you haven't added a specific 'searchDoctors' function yet.
-            // Below is the direct fetch method compatible with your backend:
+            // Use the centralized API function
+            const data = await api.searchDoctors({ location, specialization });
 
-            // We append a timestamp to prevent caching old results
-            const query = currentParams.toString();
-            const cacheBuster = `_t=${new Date().getTime()}`;
-            const finalQuery = query ? `${query}&${cacheBuster}` : `?${cacheBuster}`;
-
-            // Make sure this matches your actual backend URL (from api.js)
-            const API_BASE = "https://api-48aa.vercel.app/v1";
-
-            // Note: Your backend endpoint might be /doctor/list based on Swagger
-            const response = await fetch(`${API_BASE}/doctor/list?${finalQuery}`);
-            const data = await response.json();
-
-            // Handle different response structures (Array vs Object with data key)
+            // Data should already be an array
             if (Array.isArray(data)) {
                 setDoctors(data);
-            } else if (data.data && Array.isArray(data.data)) {
-                setDoctors(data.data);
             } else {
+                console.warn("Unexpected response format:", data);
                 setDoctors([]);
             }
 

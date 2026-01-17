@@ -73,6 +73,27 @@ export const api = {
         await signOut(auth);
     },
 
+    // Sync authenticated user with backend (for Login.jsx)
+    authenticate: async (token, formData) => {
+        try {
+            const payload = {
+                role_request: "patient_free", // Default role for regular login
+                first_name: formData.fullName ? formData.fullName.split(' ')[0] : '',
+                last_name: formData.fullName ? formData.fullName.split(' ').slice(1).join(' ') : '',
+                email: formData.identifier
+            };
+
+            const response = await axios.post(`${API_URL}/auth/register`, payload, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            return response.data;
+        } catch (error) {
+            console.error("Authentication Sync Error:", error);
+            throw error;
+        }
+    },
+
     // ================================
     // 2. DOCTOR PROFILE & DASHBOARD
     // ================================
@@ -160,6 +181,33 @@ export const api = {
         } catch (error) {
             console.error("Update Availability Error:", error);
             throw error;
+        }
+    },
+
+    // ================================
+    // 4. SEARCH DOCTORS (Public)
+    // ================================
+
+    // Search/List all doctors with optional filters
+    searchDoctors: async ({ location, specialization } = {}) => {
+        try {
+            const params = new URLSearchParams();
+            if (location) params.append('location', location);
+            if (specialization) params.append('specialization', specialization);
+
+            const queryString = params.toString();
+            const url = queryString ? `${API_URL}/doctor/list?${queryString}` : `${API_URL}/doctor/list`;
+
+            const response = await axios.get(url);
+            return response.data; // Returns array of DoctorPublic
+        } catch (error) {
+            console.error("Search Doctors Error:", {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message
+            });
+            return [];
         }
     },
 
