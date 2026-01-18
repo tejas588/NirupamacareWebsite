@@ -4,39 +4,61 @@ import './Doctors.css'; // Shared styles
 
 const DoctorCard = ({ doctor }) => {
     const navigate = useNavigate();
+
+    // Map backend snake_case to UI fields
+    const name = doctor.display_name || doctor.name || "Unknown Doctor";
+    const specialization = doctor.specialty || doctor.specialization || "General";
+    const clinicName = doctor.clinic_name || doctor.clinicName || "Private Clinic";
+    const location = doctor.clinic_address || doctor.location || "Online";
+    const rating = doctor.rating || 0;
+    const clinicFee = doctor.price_clinic || 0;
+    const onlineFee = doctor.price_online || 0;
+    let feeDisplay;
+    if (clinicFee > 0) {
+        feeDisplay = `₹${clinicFee} / Visit`;
+    } else if (onlineFee > 0) {
+        feeDisplay = `₹${onlineFee} (Online)`;
+    } else {
+        feeDisplay = "Consult Fee N/A";
+    }
+
+    const slots = doctor.availabilities || doctor.availableSlots || [];
+    const verified = true; // Placeholder
+
     return (
         <div className="doctor-card">
             <div className="doctor-card-content">
                 <div className="doctor-image-container">
-                    {/* Placeholder for now, or use a generic avatar */}
                     <img
-                        src={`https://ui-avatars.com/api/?name=${doctor.name}&background=random`}
-                        alt={doctor.name}
+                        src={`https://ui-avatars.com/api/?name=${name}&background=random`}
+                        alt={name}
                         className="doctor-img"
                     />
-                    {doctor.verified && <span className="verified-badge">✓ Verified</span>}
+                    {verified && <span className="verified-badge">✓ Verified</span>}
                 </div>
 
                 <div className="doctor-info">
-                    <h3 className="doctor-name">{doctor.name}</h3>
-                    <p className="doctor-specialization">{doctor.specialization}</p>
-                    <p className="doctor-clinic">🏥 {doctor.clinicName}</p>
-                    <p className="doctor-location">📍 {doctor.location}</p>
+                    <h3 className="doctor-name">{name}</h3>
+                    <p className="doctor-specialization">{specialization}</p>
+                    <p className="doctor-clinic">🏥 {clinicName}</p>
+                    <p className="doctor-location">📍 {location}</p>
 
                     <div className="doctor-meta">
-                        <span className="doctor-rating">⭐ {doctor.rating}</span>
-                        <span className="doctor-fee">₹{doctor.consultationFee} / Visit</span>
+                        <span className="doctor-rating">⭐ {rating}</span>
+                        <span className="doctor-fee">{feeDisplay}</span>
                     </div>
 
                     <div className="doctor-slots">
-                        <p className="slots-label">Available Today:</p>
+                        <p className="slots-label">Available Times:</p>
                         <div className="slots-list">
-                            {doctor.availableSlots.length > 0 ? (
-                                doctor.availableSlots.map((slot, index) => (
-                                    <span key={index} className="slot-pill">{slot}</span>
+                            {slots.length > 0 ? (
+                                slots.map((slot, index) => (
+                                    <span key={index} className="slot-pill">
+                                        {slot.day ? `${slot.day.substring(0, 3)} ` : ''}{slot.start_time || slot}
+                                    </span>
                                 ))
                             ) : (
-                                <span className="no-slots">No slots available</span>
+                                <span className="no-slots">No specific slots listed</span>
                             )}
                         </div>
                     </div>
@@ -44,10 +66,13 @@ const DoctorCard = ({ doctor }) => {
             </div>
 
             <div className="doctor-card-actions">
-                <button className="btn-view-profile">View Profile</button>
+                <button
+                    className="btn-view-profile"
+                    onClick={() => navigate(`/doctor-profile/${doctor._id || doctor.id}`)}
+                >View Profile</button>
                 <button
                     className="btn-book-appointment"
-                    onClick={() => navigate(`/book-appointment/${doctor.id}`)}
+                    onClick={() => navigate(`/book-appointment/${doctor._id || doctor.id}`)}
                 >
                     Book Appointment
                 </button>

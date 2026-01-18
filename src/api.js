@@ -7,8 +7,8 @@ import {
     signOut
 } from "firebase/auth";
 
-const API_URL = "https://api-48aa.vercel.app/v1";
-//const API_URL = "http://localhost:8000/v1";
+//const API_URL = "https://api-48aa.vercel.app/v1";
+const API_URL = "http://localhost:8000/v1";
 
 // --- Helper: Get Token robustly ---
 const getAuthToken = () => {
@@ -151,6 +151,19 @@ export const api = {
         }
     },
 
+    updateAppointmentStatus: async (appointmentId, status) => {
+        try {
+            const token = await getAuthToken();
+            const response = await axios.put(`${API_URL}/doctor/appointments/${appointmentId}/status`, { status }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Update Status Error:", error);
+            throw error;
+        }
+    },
+
     // Fetch Availability Slots
     getDoctorAvailability: async () => {
         try {
@@ -198,16 +211,59 @@ export const api = {
             const queryString = params.toString();
             const url = queryString ? `${API_URL}/doctor/list?${queryString}` : `${API_URL}/doctor/list`;
 
-            const response = await axios.get(url);
+            // Try to get token robustly
+            let headers = {};
+            try {
+                const token = await getAuthToken();
+                headers = { Authorization: `Bearer ${token}` };
+            } catch (e) {
+                // Not authenticated or error
+            }
+
+            const response = await axios.get(url, { headers });
             return response.data; // Returns array of DoctorPublic
         } catch (error) {
             console.error("Search Doctors Error:", {
                 status: error.response?.status,
-                statusText: error.response?.statusText,
                 data: error.response?.data,
                 message: error.message
             });
+            // If 401, it means we needed a token but didn't have one (or it expired)
             return [];
+        }
+    },
+
+    // Get specific doctor by ID
+    getDoctorById: async (id) => {
+        try {
+            let headers = {};
+            try {
+                const token = await getAuthToken();
+                headers = { Authorization: `Bearer ${token}` };
+            } catch (e) { }
+
+            const response = await axios.get(`${API_URL}/doctor/${id}`, { headers });
+            return response.data;
+        } catch (error) {
+            console.error("Get Doctor By ID Error:", error);
+            throw error;
+        }
+    },
+
+    // ================================
+    // 5. APPOINTMENTS (Patient)
+    // ================================
+
+    bookAppointment: async (bookingData) => {
+        try {
+            const token = await getAuthToken();
+            const response = await axios.post(`${API_URL}/patient/appointments/book`, bookingData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Book Appointment Error:", error);
+            throw error;
         }
     },
 
@@ -254,6 +310,19 @@ export const api = {
             return response.data;
         } catch (error) {
             console.log("Could not fetch profile (User might be new or network error)");
+            throw error;
+        }
+    },
+
+    getPatientAppointments: async () => {
+        try {
+            const token = await getAuthToken();
+            const response = await axios.get(`${API_URL}/patient/appointments`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Get Patient Appointments Error:", error);
             throw error;
         }
     }

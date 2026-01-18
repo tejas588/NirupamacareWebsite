@@ -11,11 +11,14 @@ import About from "./components/About";
 import Security from "./components/Security";
 import Otp from "./components/Otp";
 import Doctors from "./components/Doctors";
+import DoctorProfileView from './components/DoctorProfileView';
 import DoctorProfileSetup from './components/DoctorProfileSetup';
 import DoctorAuth from './components/DoctorAuth';
 import DoctorDashboard from './components/DoctorDashboard';
+import DoctorProfileEdit from './components/DoctorProfileEdit';
 import UserProfileView from "./components/UserProfileView";
 import AppointmentBooking from "./components/AppointmentBooking";
+import MyAppointments from "./components/MyAppointments";
 import "./App.css";
 
 const SplashWrapper = () => {
@@ -35,7 +38,9 @@ function App() {
             <Route path="/language" element={<LanguageSelect />} />
             <Route path="/home" element={<Home />} />
             <Route path="/doctors" element={<Doctors />} />
+            <Route path="/doctor-profile/:doctorId" element={<DoctorProfileView />} />
             <Route path="/book-appointment/:doctorId" element={<AppointmentBooking />} />
+            <Route path="/my-appointments" element={<MyAppointments />} />
             <Route path="/intro" element={<Intro />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/about" element={<About />} />
@@ -45,6 +50,7 @@ function App() {
             <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
             <Route path="/userprofilesetup" element={<UserProfileSetup />} />
             <Route path="/doctor-setup" element={<DoctorProfileSetup />} />
+            <Route path="/doctor-edit" element={<DoctorProfileEdit />} />
             <Route path="/view-profile" element={<UserProfileView />} />
             <Route path="/verify-otp" element={<Otp />} />
           </Routes>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { api } from '../api';
 import './AppointmentBooking.css';
 
 const AppointmentBooking = () => {
@@ -12,57 +13,95 @@ const AppointmentBooking = () => {
     // Booking State
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
-    const [consultType, setConsultType] = useState('Clinic Visit');
+    const [consultType, setConsultType] = useState(''); // Will be set after doctor loads
     const [availableSlots, setAvailableSlots] = useState([]);
 
     // UI State
     const [showSuccess, setShowSuccess] = useState(false);
     const [isBooking, setIsBooking] = useState(false);
+    const [userData, setUserData] = useState({ name: '' });
 
-    // Initial Load: Fetch Doctor
+    // Initial Load: Fetch Doctor and user profile
     useEffect(() => {
-        const fetchDoctor = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/api/doctors/${doctorId}`);
-                const data = await response.json();
-                if (data.success) {
-                    setDoctor(data.data);
+                // Fetch Doctor
+                const docData = await api.getDoctorById(doctorId);
+                if (docData) {
+                    // Map backend fields to UI
+                    const mappedDoc = {
+                        ...docData,
+                        name: docData.display_name || docData.name || "Doctor",
+                        // Strictly respect 0 as "Not Available"
+                        consultationFee: docData.price_clinic !== undefined ? docData.price_clinic : (docData.consultationFee || 0),
+                        consultationFeeOnline: docData.price_online !== undefined ? docData.price_online : 0,
+                        specialization: docData.specialty || docData.specialization || "Specialist",
+                        searchedAvailabilities: docData.availabilities || []
+                    };
+                    setDoctor(mappedDoc);
+
+                    // Set default consult type based on availability
+                    if (mappedDoc.consultationFee > 0) {
+                        setConsultType('Clinic Visit');
+                    } else if (mappedDoc.consultationFeeOnline > 0) {
+                        setConsultType('Online Consult');
+                    }
+
                 } else {
                     alert("Doctor not found");
                     navigate('/doctors');
                 }
+
+                // Fetch current user name
+                const userProfile = await api.getPatientProfile().catch(() => null);
+                if (userProfile) {
+                    setUserData({ name: userProfile.full_name });
+                }
+
             } catch (error) {
-                console.error("Error fetching doctor:", error);
+                console.error("Error fetching data:", error);
             } finally {
                 setLoadingDoc(false);
             }
         };
 
-        if (doctorId) fetchDoctor();
+        if (doctorId) fetchData();
 
-        // Default to today text
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
     }, [doctorId, navigate]);
 
-    // Fetch Availability when date changes
+    // Generate Slots based on doctor availability for selected date
     useEffect(() => {
-        const fetchAvailability = async () => {
-            if (!selectedDate || !doctorId) return;
-            try {
-                const response = await fetch(`http://localhost:5000/api/appointments/availability?doctorId=${doctorId}&date=${selectedDate}`);
-                const data = await response.json();
-                if (data.success) {
-                    setAvailableSlots(data.slots);
-                    setSelectedSlot(''); // Reset slot selection
-                }
-            } catch (error) {
-                console.error("Error fetching slots:", error);
+        const generateSlotsForDate = () => {
+            if (!selectedDate || !doctor) return;
+
+            const dateObj = new Date(selectedDate);
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+
+            const dayAvail = doctor.searchedAvailabilities?.find(a => a.day === dayName);
+
+            if (!dayAvail) {
+                setAvailableSlots([]);
+                return;
             }
+
+            const slots = [];
+            let current = new Date(`2000-01-01T${dayAvail.start_time}`);
+            const end = new Date(`2000-01-01T${dayAvail.end_time}`);
+
+            while (current < end) {
+                const timeStr = current.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                slots.push({ time: timeStr, available: true });
+                current.setMinutes(current.getMinutes() + 30);
+            }
+
+            setAvailableSlots(slots);
+            setSelectedSlot('');
         };
 
-        fetchAvailability();
-    }, [selectedDate, doctorId]);
+        generateSlotsForDate();
+    }, [selectedDate, doctor]);
 
     // Generate next 7 days for calendar
     const generateDates = () => {
@@ -84,31 +123,28 @@ const AppointmentBooking = () => {
         if (!selectedSlot) return;
         setIsBooking(true);
         try {
-            const bookingData = {
-                doctorId,
-                doctorName: doctor.name,
+            const bookingPayload = {
+                doctor_id: doctorId,
                 date: selectedDate,
-                timeSlot: selectedSlot,
-                consultationType: consultType,
-                userName: "Supriti Mishra" // Mock User
+                time: selectedSlot,
+                type: consultType,
             };
 
-            const response = await fetch('http://localhost:5000/api/appointments/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bookingData)
-            });
+            const result = await api.bookAppointment(bookingPayload);
 
-            const result = await response.json();
-            if (result.success) {
+            if (result) {
                 setShowSuccess(true);
             } else {
-                alert(result.message || "Booking Failed");
+                alert("Booking Failed");
             }
 
         } catch (error) {
             console.error("Booking Error:", error);
-            alert("Something went wrong.");
+            const errorMsg = error.response?.data?.detail
+                || (typeof error.response?.data === 'string' ? error.response.data : "")
+                || error.message
+                || "Unknown Error";
+            alert(`Booking Failed: ${errorMsg}. Please ensure you are logged in as a patient.`);
         } finally {
             setIsBooking(false);
         }
@@ -116,6 +152,24 @@ const AppointmentBooking = () => {
 
     if (loadingDoc) return <div className="booking-page">Loading...</div>;
     if (!doctor) return null;
+
+    // determine availabilities for rendering
+    const hasClinic = doctor.consultationFee > 0;
+    const hasOnline = doctor.consultationFeeOnline > 0;
+
+    if (!hasClinic && !hasOnline) {
+        return (
+            <div className="booking-page">
+                <header className="booking-header">
+                    <button className="back-btn" onClick={() => navigate(-1)}>←</button>
+                    <h2>Appointment</h2>
+                </header>
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                    <p>This doctor has not set up consultation fees yet.</p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="booking-page">
@@ -132,29 +186,33 @@ const AppointmentBooking = () => {
                     className="booking-doc-img"
                 />
                 <h3 className="booking-doc-name">{doctor.name}</h3>
-                <p className="booking-doc-spec">{doctor.specialization} • 15+ years exp</p>
+                <p className="booking-doc-spec">{doctor.specialization}</p>
                 <div className="booking-tags">
-                    <span className="tag">English</span>
-                    <span className="tag">Bengali</span>
                 </div>
             </div>
 
             {/* Consultation Type */}
             <div className="consultation-type">
-                <div
-                    className={`type-option ${consultType === 'Clinic Visit' ? 'selected' : ''}`}
-                    onClick={() => setConsultType('Clinic Visit')}
-                >
-                    <span className="type-label">Clinic Visit</span>
-                    <span className="type-price">₹{doctor.consultationFee}</span>
-                </div>
-                <div
-                    className={`type-option ${consultType === 'Online Consult' ? 'selected' : ''}`}
-                    onClick={() => setConsultType('Online Consult')}
-                >
-                    <span className="type-label">Online Consult</span>
-                    <span className="type-price">₹{doctor.consultationFee - 100}</span>
-                </div>
+                {hasClinic && (
+                    <div
+                        className={`type-option ${consultType === 'Clinic Visit' ? 'selected' : ''}`}
+                        onClick={() => setConsultType('Clinic Visit')}
+                        style={!hasOnline ? { width: '100%' } : {}}
+                    >
+                        <span className="type-label">Clinic Visit</span>
+                        <span className="type-price">₹{doctor.consultationFee}</span>
+                    </div>
+                )}
+                {hasOnline && (
+                    <div
+                        className={`type-option ${consultType === 'Online Consult' ? 'selected' : ''}`}
+                        onClick={() => setConsultType('Online Consult')}
+                        style={!hasClinic ? { width: '100%' } : {}}
+                    >
+                        <span className="type-label">Online Consult</span>
+                        <span className="type-price">₹{doctor.consultationFeeOnline}</span>
+                    </div>
+                )}
             </div>
 
             {/* Calendar */}
@@ -191,7 +249,7 @@ const AppointmentBooking = () => {
                             {slot.time}
                         </button>
                     )) : (
-                        <p>No slots available.</p>
+                        <p>No slots available for this day.</p>
                     )}
                 </div>
             </div>
@@ -200,7 +258,7 @@ const AppointmentBooking = () => {
             <button
                 className="btn-confirm-booking"
                 onClick={handleBook}
-                disabled={!selectedSlot || isBooking}
+                disabled={!selectedSlot || isBooking || !consultType}
             >
                 {isBooking ? 'Booking...' : 'Book Appointment'}
             </button>

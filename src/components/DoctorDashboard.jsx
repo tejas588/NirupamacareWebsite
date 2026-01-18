@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, Clock, Users, Video, MapPin,
-  CheckCircle, XCircle, Plus, Trash2, LogOut
+  CheckCircle, XCircle, Plus, Trash2, LogOut,
+  Mic, MicOff, VideoOff, PhoneOff
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -14,16 +15,99 @@ const DoctorDashboard = () => {
   const [activeTab, setActiveTab] = useState('appointments');
   const [loading, setLoading] = useState(true);
 
+  // Dropdown Menu State
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
+
   // Data States
   const [doctorProfile, setDoctorProfile] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [mySlots, setMySlots] = useState([]);
+
+  // Video Call State
+  const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [micOn, setMicOn] = useState(true);
+  const [cameraOn, setCameraOn] = useState(true);
 
   // Stats
   const [stats, setStats] = useState({ total: 0, today: 0, pending: 0 });
 
   // Form State (Aligned with Backend naming: snake_case)
   const [newSlot, setNewSlot] = useState({ day: 'Monday', start_time: '', end_time: '' });
+
+  // Quick Schedule Generator State
+  const [dailyConfig, setDailyConfig] = useState({ start: '09:00', end: '17:00' });
+  const [selectedDays, setSelectedDays] = useState(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']);
+  const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const [undoStack, setUndoStack] = useState(null); // To store previous slots for Undo logic
+
+  const handleToggleDay = (day) => {
+    if (selectedDays.includes(day)) {
+      setSelectedDays(selectedDays.filter(d => d !== day));
+    } else {
+      setSelectedDays([...selectedDays, day]);
+    }
+  };
+
+  const handleApplyDailySchedule = async () => {
+    if (!dailyConfig.start || !dailyConfig.end) return;
+
+    // Validation: Start Time must be before End Time
+    if (dailyConfig.start >= dailyConfig.end) {
+      alert("Start Time must be strictly earlier than End Time (e.g., 09:00 to 17:00).");
+      return;
+    }
+
+    // Save current state to Undo Stack before changing
+    setUndoStack([...mySlots]);
+
+    // Create new slots with temp unique integer IDs
+    const baseId = Date.now();
+    const newSlots = selectedDays.map((day, index) => ({
+      day,
+      start_time: dailyConfig.start,
+      end_time: dailyConfig.end,
+      id: baseId + index + Math.floor(Math.random() * 1000) // Ensure integer
+    }));
+
+    const updatedSlots = [...mySlots, ...newSlots];
+    setMySlots(updatedSlots);
+
+    try {
+      await api.updateAvailability(updatedSlots);
+    } catch (error) {
+      console.error("Failed to save daily schedule", error);
+      alert("Failed to save schedule");
+      setMySlots(mySlots); // Revert
+      setUndoStack(null);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!undoStack) return;
+    const currentSlots = [...mySlots];
+    setMySlots(undoStack); // Optimistic Revert
+
+    try {
+      await api.updateAvailability(undoStack);
+      setUndoStack(null); // Clear undo availability
+    } catch (err) {
+      alert("Failed to undo.");
+      setMySlots(currentSlots);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // --- Load Data ---
   useEffect(() => {
@@ -94,6 +178,22 @@ const DoctorDashboard = () => {
     navigate('/doctor-login'); // Make sure this matches your Route path
   };
 
+  const handleStatusUpdate = async (aptId, newStatus) => {
+    // Optimistic update
+    const previous = [...appointments];
+    setAppointments(appointments.map(a =>
+      (a.id === aptId) ? { ...a, status: newStatus } : a
+    ));
+
+    try {
+      await api.updateAppointmentStatus(aptId, newStatus);
+    } catch (error) {
+      console.error("Update failed", error);
+      alert("Failed to update status");
+      setAppointments(previous); // Revert
+    }
+  };
+
   const addSlot = async () => {
     // Check using snake_case keys
     if (newSlot.start_time && newSlot.end_time) {
@@ -133,6 +233,17 @@ const DoctorDashboard = () => {
     }
   };
 
+  const startVideoCall = (apt) => {
+    setActiveVideoCall(apt);
+    setActiveTab('video');
+  };
+
+  const endVideoCall = () => {
+    setActiveVideoCall(null);
+    // Stay on video tab (return to lobby) or go back to appointments?
+    // Staying on video tab (Lobby) is usually better UX
+  };
+
   if (loading) return <div className="loading-screen">Loading Dashboard...</div>;
 
   return (
@@ -142,10 +253,31 @@ const DoctorDashboard = () => {
           <img src="/nirupama1.png" alt="Logo" className="dash-logo" />
           <span className="badge-pro">Doctor Portal</span>
         </div>
-        <div className="dash-nav-right">
-          <button className="btn-logout" onClick={handleLogout}>
-            <LogOut size={18} /> Logout
-          </button>
+        <div className="dash-nav-right" ref={profileMenuRef}>
+          <div
+            className={`dash-profile-widget ${showProfileMenu ? 'active' : ''}`}
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+          >
+            <div className="dash-profile-text">
+              <span className="dash-greeting">Welcome,</span>
+              <span className="dash-username">{doctorProfile?.first_name || doctorProfile?.display_name?.split(' ')[0] || 'Doctor'}</span>
+            </div>
+            <div className="dash-avatar">
+              {doctorProfile?.first_name ? doctorProfile.first_name[0] : (doctorProfile?.display_name ? doctorProfile.display_name[0] : 'D')}
+            </div>
+          </div>
+
+          {showProfileMenu && (
+            <div className="dash-dropdown-menu fade-in-fast">
+              <div className="dropdown-item" onClick={() => navigate('/doctor-edit')}>
+                <span>👤</span> View My Profile
+              </div>
+              <div className="dropdown-divider"></div>
+              <div className="dropdown-item logout" onClick={handleLogout}>
+                <span>🚪</span> Logout
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -174,35 +306,43 @@ const DoctorDashboard = () => {
             >
               <Clock size={20} /> Manage Schedule
             </button>
+            <button
+              className={activeTab === 'video' ? 'active' : ''}
+              onClick={() => setActiveTab('video')}
+            >
+              <Video size={20} /> Video Conference
+            </button>
           </nav>
         </aside>
 
         <main className="dash-content">
 
           {/* Stats */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon bg-blue"><Users size={24} /></div>
-              <div>
-                <h4>Total Patients</h4>
-                <p>{stats.total}</p>
+          {activeTab !== 'video' && (
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon bg-blue"><Users size={24} /></div>
+                <div>
+                  <h4>Total Patients</h4>
+                  <p>{stats.total}</p>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon bg-green"><Calendar size={24} /></div>
+                <div>
+                  <h4>Appointments Today</h4>
+                  <p>{stats.today}</p>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon bg-orange"><Clock size={24} /></div>
+                <div>
+                  <h4>Pending Requests</h4>
+                  <p>{stats.pending}</p>
+                </div>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon bg-green"><Calendar size={24} /></div>
-              <div>
-                <h4>Appointments Today</h4>
-                <p>{stats.today}</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon bg-orange"><Clock size={24} /></div>
-              <div>
-                <h4>Pending Requests</h4>
-                <p>{stats.pending}</p>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Appointments View */}
           {activeTab === 'appointments' && (
@@ -230,8 +370,8 @@ const DoctorDashboard = () => {
                           <td className="fw-600">{apt.patient_name}</td>
                           <td>{apt.date}, {apt.time}</td>
                           <td>
-                            <span className={`badge-type ${apt.type === 'Online Consult' ? 'online' : 'clinic'}`}>
-                              {apt.type === 'Online Consult' ? <Video size={14} /> : <MapPin size={14} />}
+                            <span className={`badge-type ${apt.type && apt.type.toLowerCase().includes('online') ? 'online' : 'clinic'}`}>
+                              {apt.type && apt.type.toLowerCase().includes('online') ? <Video size={14} /> : <MapPin size={14} />}
                               {apt.type}
                             </span>
                           </td>
@@ -241,8 +381,25 @@ const DoctorDashboard = () => {
                           </td>
                           <td>
                             <div className="action-buttons">
-                              <button className="btn-icon accept" title="Accept"><CheckCircle size={18} /></button>
-                              <button className="btn-icon decline" title="Decline"><XCircle size={18} /></button>
+                              {apt.status === 'Pending' ? (
+                                <>
+                                  <button className="btn-icon accept" title="Accept" onClick={() => handleStatusUpdate(apt.id, 'Confirmed')}><CheckCircle size={18} /></button>
+                                  <button className="btn-icon decline" title="Decline" onClick={() => handleStatusUpdate(apt.id, 'Cancelled')}><XCircle size={18} /></button>
+                                </>
+                              ) : (
+                                <span style={{ color: '#aaa', fontSize: '0.85rem' }}>Completed</span>
+                              )}
+
+                              {apt.type && apt.type.toLowerCase().includes('online') && (
+                                <button
+                                  className="btn-icon video-call"
+                                  title="Start Video Call"
+                                  onClick={() => startVideoCall(apt)}
+                                  style={{ color: '#007bff', marginLeft: '8px', opacity: apt.status === 'Confirmed' ? 1 : 0.5, pointerEvents: apt.status === 'Confirmed' ? 'auto' : 'none' }}
+                                >
+                                  <Video size={18} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -262,6 +419,46 @@ const DoctorDashboard = () => {
                 <p className="card-sub">Set the times you are free so patients can book you.</p>
               </div>
 
+              {/* Quick Schedule Generator */}
+              <div className="quick-schedule-box">
+                <h4 style={{ margin: '0 0 12px 0', color: '#1f2937' }}>⚡ Set Daily Schedule</h4>
+                <div className="quick-form-row">
+                  <div className="quick-time-group">
+                    <label>From:</label>
+                    <input type="time" value={dailyConfig.start} onChange={e => setDailyConfig({ ...dailyConfig, start: e.target.value })} />
+                    <label>To:</label>
+                    <input type="time" value={dailyConfig.end} onChange={e => setDailyConfig({ ...dailyConfig, end: e.target.value })} />
+                  </div>
+                  <button className="btn-add-slot" style={{ background: '#4b5563', marginLeft: 'auto' }} onClick={handleApplyDailySchedule}>
+                    <Plus size={16} style={{ marginRight: '4px' }} /> Generate
+                  </button>
+
+                  {undoStack && (
+                    <button
+                      className="btn-add-slot"
+                      style={{ background: '#fee2e2', color: '#ef4444', marginLeft: '10px', border: '1px solid #fecaca' }}
+                      onClick={handleUndo}
+                    >
+                      ↩ Undo
+                    </button>
+                  )}
+                </div>
+                <div className="day-toggles">
+                  {allDays.map(day => (
+                    <div
+                      key={day}
+                      className={`day-chip ${selectedDays.includes(day) ? 'selected' : ''}`}
+                      onClick={() => handleToggleDay(day)}
+                    >
+                      {day.substring(0, 3)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ height: '1px', background: '#e5e7eb', margin: '24px 0' }}></div>
+
+              <h3 style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 12px 0' }}>Add Single Exception / Slot</h3>
               <div className="schedule-form">
                 <select
                   value={newSlot.day}
@@ -308,6 +505,122 @@ const DoctorDashboard = () => {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Video Conference View (Lobby & Active) */}
+          {activeTab === 'video' && (
+            activeVideoCall ? (
+              // --- ACTIVE CALL UI ---
+              <div className="content-card video-conference-container">
+                <div className="video-header">
+                  <h2>Live Consultation</h2>
+                  <div className="video-meta">
+                    <span className="patient-name">Patient: {activeVideoCall.patient_name}</span>
+                    <span className="live-badge">● LIVE</span>
+                  </div>
+                </div>
+
+                <div className="video-main-area">
+                  {/* Main Video (Patient) */}
+                  <div className="video-feed patient-feed">
+                    <div className="video-placeholder">
+                      <Users size={64} />
+                      <p>Patient Feed (Mock)</p>
+                    </div>
+                  </div>
+
+                  {/* Picture-in-Picture (Doctor/Self) */}
+                  <div className="video-feed self-feed">
+                    {cameraOn ? (
+                      <div className="video-placeholder-small">
+                        <span style={{ fontSize: '12px' }}>You</span>
+                      </div>
+                    ) : (
+                      <div className="video-placeholder-small camera-off">
+                        <VideoOff size={16} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="video-controls">
+                  <button
+                    className={`ctrl-btn ${micOn ? '' : 'off'}`}
+                    onClick={() => setMicOn(!micOn)}
+                    title={micOn ? "Mute" : "Unmute"}
+                  >
+                    {micOn ? <Mic size={24} /> : <MicOff size={24} />}
+                  </button>
+
+                  <button
+                    className="ctrl-btn end-call"
+                    onClick={endVideoCall}
+                    title="End Call"
+                  >
+                    <PhoneOff size={24} />
+                  </button>
+
+                  <button
+                    className={`ctrl-btn ${cameraOn ? '' : 'off'}`}
+                    onClick={() => setCameraOn(!cameraOn)}
+                    title={cameraOn ? "Turn Camera Off" : "Turn Camera On"}
+                  >
+                    {cameraOn ? <Video size={24} /> : <VideoOff size={24} />}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // --- LOBBY UI (No Active Call) ---
+              <div className="content-card">
+                <div className="card-header">
+                  <h2>Video Conference Lobby</h2>
+                  <p className="card-sub">All your scheduled online consultations appear here.</p>
+                </div>
+
+                <div className="table-responsive">
+                  {appointments.filter(a => a.type && a.type.toLowerCase().includes('online')).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                      <Video size={48} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                      <p>No online consultations scheduled.</p>
+                    </div>
+                  ) : (
+                    <table className="dash-table">
+                      <thead>
+                        <tr>
+                          <th>Patient</th>
+                          <th>Time</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {appointments
+                          .filter(a => a.type && a.type.toLowerCase().includes('online'))
+                          .map(apt => (
+                            <tr key={apt.id || Math.random()}>
+                              <td className="fw-600">{apt.patient_name}</td>
+                              <td>{apt.time} ({apt.date})</td>
+                              <td>
+                                <span className={`status-dot ${apt.status.toLowerCase()}`}></span>
+                                {apt.status}
+                              </td>
+                              <td>
+                                <button
+                                  className="btn-add-slot"
+                                  style={{ margin: 0, padding: '6px 12px', fontSize: '0.9rem' }}
+                                  onClick={() => startVideoCall(apt)}
+                                >
+                                  <Video size={16} style={{ marginRight: '6px' }} /> Join Call
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            )
           )}
 
         </main>

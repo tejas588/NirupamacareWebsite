@@ -1,0 +1,195 @@
+/* MyAppointments.css */
+.my-appointments-page {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Outfit', sans-serif;
+}
+
+.booking-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: #555;
+    transition: background 0.2s;
+}
+
+.back-btn:hover {
+    background: #f0f0f0;
+}
+
+.booking-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.loading-state,
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    color: #666;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.btn-book-new {
+    margin-top: 20px;
+    padding: 10px 24px;
+    background: #00695c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.appointment-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f0f0f0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.appointment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.apt-left {
+    flex: 1;
+}
+
+.apt-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.apt-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+.apt-id {
+    font-size: 0.8rem;
+    color: #999;
+    background: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.apt-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.apt-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.type-online {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.type-clinic {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-confirmed,
+.status-badge.status-confirmed {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-cancelled,
+.status-badge.status-cancelled {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.status-pending,
+.status-badge.status-pending {
+    background: #fff3e0;
+    color: #ef6c00;
+}
+
+/* Mobile Responsive */
+@media (max-width: 600px) {
+    .appointment-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .apt-right {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        border-top: 1px solid #f0f0f0;
+        padding-top: 10px;
+    }
+}

@@ -9,6 +9,7 @@ const DoctorAuth = () => {
   const [isLogin, setIsLogin] = useState(true); // Toggles between Login & Signup
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // Navbar state
 
   // Form State
   const [formData, setFormData] = useState({
@@ -32,11 +33,11 @@ const DoctorAuth = () => {
       if (isLogin) {
         // --- LOGIN LOGIC ---
         const response = await api.login(formData.email, formData.password);
-        
+
         // Security Check: Ensure the user is actually a doctor
         // (Assuming your login response includes the role, otherwise check /me endpoint)
         if (response.role && response.role !== 'doctor') {
-            throw new Error("Access Denied. This portal is for Doctors only.");
+          throw new Error("Access Denied. This portal is for Doctors only.");
         }
 
         // Redirect to Dashboard
@@ -58,7 +59,7 @@ const DoctorAuth = () => {
 
         // 2. Auto-login immediately after signup
         await api.login(formData.email, formData.password);
-        
+
         // 3. Redirect to Setup Page (First-time flow)
         navigate('/doctor-setup');
       }
@@ -73,6 +74,23 @@ const DoctorAuth = () => {
 
   return (
     <div id="doctor-auth-root">
+      <nav className="auth-navbar">
+        <div className="auth-nav-container">
+          <div className="auth-logo">
+            <img src="nirupama1.png" className="auth-logo-icon" alt="Logo" />
+          </div>
+          <div className="auth-menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
+            <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
+            <div className={isMenuOpen ? "auth-bar open" : "auth-bar"}></div>
+          </div>
+          <ul className={isMenuOpen ? "auth-nav-links active" : "auth-nav-links"}>
+            <li><a href="/home">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+          </ul>
+        </div>
+      </nav>
+
       <div className="auth-card">
         {/* Header */}
         <div className="auth-header">
@@ -82,8 +100,8 @@ const DoctorAuth = () => {
           </div>
           <h2>{isLogin ? 'Welcome Back, Doctor' : 'Join Our Network'}</h2>
           <p className="sub-text">
-            {isLogin 
-              ? 'Login to manage your patients and appointments.' 
+            {isLogin
+              ? 'Login to manage your patients and appointments.'
               : 'Create your clinic profile today.'}
           </p>
         </div>
@@ -93,18 +111,18 @@ const DoctorAuth = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form">
-          
+
           {/* Full Name - Signup Only */}
           {!isLogin && (
             <div className="input-group">
               <User size={18} className="input-icon" />
-              <input 
-                type="text" 
-                name="full_name" 
-                placeholder="Full Name (e.g. Dr. John Doe)" 
+              <input
+                type="text"
+                name="full_name"
+                placeholder="Full Name (e.g. Dr. John Doe)"
                 value={formData.full_name}
                 onChange={handleChange}
-                required 
+                required
               />
             </div>
           )}
@@ -112,26 +130,26 @@ const DoctorAuth = () => {
           {/* Email */}
           <div className="input-group">
             <Mail size={18} className="input-icon" />
-            <input 
-              type="email" 
-              name="email" 
-              placeholder="Email Address" 
+            <input
+              type="email"
+              name="email"
+              placeholder="Email Address"
               value={formData.email}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
 
           {/* Password */}
           <div className="input-group">
             <Lock size={18} className="input-icon" />
-            <input 
-              type="password" 
-              name="password" 
-              placeholder="Password" 
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              required 
+              required
             />
           </div>
 
@@ -139,13 +157,13 @@ const DoctorAuth = () => {
           {!isLogin && (
             <div className="input-group">
               <Lock size={18} className="input-icon" />
-              <input 
-                type="password" 
-                name="confirmPassword" 
-                placeholder="Confirm Password" 
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                required 
+                required
               />
             </div>
           )}
@@ -160,9 +178,9 @@ const DoctorAuth = () => {
         <div className="auth-footer">
           <p>
             {isLogin ? "New to Nirupama Care?" : "Already have an account?"}
-            <button 
-              type="button" 
-              className="link-btn" 
+            <button
+              type="button"
+              className="link-btn"
               onClick={() => { setIsLogin(!isLogin); setError(''); }}
             >
               {isLogin ? "Register Here" : "Login Here"}

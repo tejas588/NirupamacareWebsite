@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase'; 
+import { auth } from '../firebase';
 import { api } from '../api'; // ✅ 1. IMPORT API (This was missing)
 import './Home.css';
 
@@ -10,7 +10,7 @@ const Home = () => {
 
   // --- Dropdown State ---
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const profileMenuRef = useRef(null); 
+  const profileMenuRef = useRef(null);
 
   // --- Symptom Checker State ---
   const [symptomDesc, setSymptomDesc] = useState('');
@@ -25,51 +25,51 @@ const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState({ name: 'User', avatar: '' });
-  
+
   useEffect(() => {
     setLoaded(true);
-    
+
     // 1. Check Login Token
     const token = localStorage.getItem('token');
     const storedName = localStorage.getItem('user_name');
-    
+
     if (token) {
       setIsLoggedIn(true);
-      
+
       // 2. Set Initial Optimistic Name (Fast, but might be "User")
       let finalName = "User";
       if (storedName) {
-          finalName = storedName;
+        finalName = storedName;
       } else if (auth.currentUser && auth.currentUser.displayName) {
-          finalName = auth.currentUser.displayName;
+        finalName = auth.currentUser.displayName;
       }
 
       setUserProfile({
-          name: finalName,
-          avatar: auth.currentUser?.photoURL || ""
+        name: finalName,
+        avatar: auth.currentUser?.photoURL || ""
       });
 
       // ✅ 3. THE TRAFFIC COP LOGIC (Crucial Integration Step)
       // We ask the backend: "Does this user have a profile?"
       api.getPatientProfile()
         .then((profile) => {
-            // SUCCESS: Profile exists! Show real name.
-            console.log("✅ Profile Verified:", profile);
-            const realName = profile.full_name.split(' ')[0]; 
-            
-            setUserProfile(prev => ({ ...prev, name: realName }));
-            localStorage.setItem('user_name', realName);
-            localStorage.setItem('profileCompleted', 'true');
+          // SUCCESS: Profile exists! Show real name.
+          console.log("✅ Profile Verified:", profile);
+          const realName = profile.full_name.split(' ')[0];
+
+          setUserProfile(prev => ({ ...prev, name: realName }));
+          localStorage.setItem('user_name', realName);
+          localStorage.setItem('profileCompleted', 'true');
         })
         .catch((err) => {
-            // FAILURE: Check if it's a 404 (Missing Profile)
-            console.log("Profile check failed:", err);
-            
-            if (err.response && err.response.status === 404) {
-                console.log("🚨 No profile found! Redirecting to setup...");
-                // Force user to create a profile immediately
-                navigate('/userprofilesetup'); 
-            }
+          // FAILURE: Check if it's a 404 (Missing Profile)
+          console.log("Profile check failed:", err);
+
+          if (err.response && err.response.status === 404) {
+            console.log("🚨 No profile found! Redirecting to setup...");
+            // Force user to create a profile immediately
+            navigate('/userprofilesetup');
+          }
         });
     }
 
@@ -102,38 +102,38 @@ const Home = () => {
       return;
     }
     if (!symptomDesc.trim()) {
-        alert("Please describe your symptoms.");
-        return;
+      alert("Please describe your symptoms.");
+      return;
     }
 
     setIsAnalyzing(true);
     setSuggestion(null);
 
     setTimeout(() => {
-        const text = symptomDesc.toLowerCase();
-        let doctorType = "General Physician";
-        let reason = "For a general checkup and initial diagnosis.";
-  
-        if (text.includes('tooth') || text.includes('gum') || text.includes('jaw') || text.includes('cavity') ||text.includes('oral')) {
-          doctorType = "Dentist";
-          reason = "It sounds like a dental issue.";
-        } else if (text.includes('heart') || text.includes('chest') || text.includes('beat') || text.includes('palpitation')|| text.includes('breathing')) {
-          doctorType = "Cardiologist";
-          reason = "Chest or heart issues require a specialist.";
-        } else if (text.includes('skin') || text.includes('rash') || text.includes('itch') || text.includes('acne') || text.includes('spot')) {
-          doctorType = "Dermatologist";
-          reason = "For skin related conditions.";
-        } else if (text.includes('bone') || text.includes('fracture') || text.includes('joint') || text.includes('knee') || text.includes('back') || text.includes('muscle')) {
-          doctorType = "Orthopedic";
-          reason = "For bone and joint health.";
-        } else if (text.includes('stomach') || text.includes('digest') || text.includes('vomit') || text.includes('belly') || text.includes('acid') || text.includes('gas')) {
-          doctorType = "Gastroenterologist";
-          reason = "For digestive system issues.";
-        }
-  
-        setSuggestion({ type: doctorType, message: reason });
-        setIsAnalyzing(false);
-      }, 1500);
+      const text = symptomDesc.toLowerCase();
+      let doctorType = "General Physician";
+      let reason = "For a general checkup and initial diagnosis.";
+
+      if (text.includes('tooth') || text.includes('gum') || text.includes('jaw') || text.includes('cavity') || text.includes('oral')) {
+        doctorType = "Dentist";
+        reason = "It sounds like a dental issue.";
+      } else if (text.includes('heart') || text.includes('chest') || text.includes('beat') || text.includes('palpitation') || text.includes('breathing')) {
+        doctorType = "Cardiologist";
+        reason = "Chest or heart issues require a specialist.";
+      } else if (text.includes('skin') || text.includes('rash') || text.includes('itch') || text.includes('acne') || text.includes('spot')) {
+        doctorType = "Dermatologist";
+        reason = "For skin related conditions.";
+      } else if (text.includes('bone') || text.includes('fracture') || text.includes('joint') || text.includes('knee') || text.includes('back') || text.includes('muscle')) {
+        doctorType = "Orthopedic";
+        reason = "For bone and joint health.";
+      } else if (text.includes('stomach') || text.includes('digest') || text.includes('vomit') || text.includes('belly') || text.includes('acid') || text.includes('gas')) {
+        doctorType = "Gastroenterologist";
+        reason = "For digestive system issues.";
+      }
+
+      setSuggestion({ type: doctorType, message: reason });
+      setIsAnalyzing(false);
+    }, 1500);
   };
 
   const handleSearch = () => {
@@ -144,29 +144,29 @@ const Home = () => {
   };
 
   const handleLogout = () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user_name'); 
-      localStorage.removeItem('mongo_user_id');
-      setIsLoggedIn(false);
-      setIsMenuOpen(false); 
-      navigate('/login');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('mongo_user_id');
+    setIsLoggedIn(false);
+    setIsMenuOpen(false);
+    navigate('/login');
   };
 
   const handleNavigation = (path) => {
-      navigate(path);
-      setIsMenuOpen(false); 
+    navigate(path);
+    setIsMenuOpen(false);
   };
 
   return (
     <div id="home-page-root">
-      
+
       <nav className="home-navbar">
         <div className="home-nav-container">
           <div className="home-nav-left">
             <div className="home-logo" onClick={() => navigate('/')}>
-              <img src="nirupama1.png" alt="" className='home-logo-img'/>
+              <img src="nirupama1.png" alt="" className='home-logo-img' />
             </div>
-            
+
             <ul className="home-primary-nav desktop-only">
               <li><a href="/doctors" className="active-link">Get Doctor</a></li>
               <li><a href="/video-consult">Video Consult</a></li>
@@ -175,63 +175,63 @@ const Home = () => {
           </div>
 
           <div className="home-nav-right desktop-only">
-            
+
             {!isLoggedIn && (
-               <>
-                 <a href="/doctor-login" className="nav-link-secondary">For doctors/labs</a>
-                 <a href="/security" className="nav-link-secondary">Security</a>
-                 <a href="/help" className="nav-link-secondary">Help</a>
-               </>
+              <>
+                <a href="/doctor-login" className="nav-link-secondary">For doctors/labs</a>
+                <a href="/security" className="nav-link-secondary">Security</a>
+                <a href="/help" className="nav-link-secondary">Help</a>
+              </>
             )}
-            
+
             {isLoggedIn ? (
-                <div className="nav-profile-container" ref={profileMenuRef}>
-                    <div 
-                        className={`nav-profile-widget ${showProfileMenu ? 'active' : ''}`} 
-                        onClick={() => setShowProfileMenu(!showProfileMenu)}
-                    >
-                        <div className="nav-profile-text">
-                            <span className="nav-greeting">{getGreeting()},</span>
-                            <span className="nav-username">{userProfile.name}</span>
-                        </div>
-                        <div className="nav-profile-avatar">
-                            {userProfile.avatar ? (
-                                <img src={userProfile.avatar} alt="Profile" />
-                            ) : (
-                                <div className="avatar-placeholder">
-                                    {userProfile.name.charAt(0)}
-                                </div>
-                            )}
-                        </div>
+              <div className="nav-profile-container" ref={profileMenuRef}>
+                <div
+                  className={`nav-profile-widget ${showProfileMenu ? 'active' : ''}`}
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                >
+                  <div className="nav-profile-text">
+                    <span className="nav-greeting">{getGreeting()},</span>
+                    <span className="nav-username">{userProfile.name}</span>
+                  </div>
+                  <div className="nav-profile-avatar">
+                    {userProfile.avatar ? (
+                      <img src={userProfile.avatar} alt="Profile" />
+                    ) : (
+                      <div className="avatar-placeholder">
+                        {userProfile.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {showProfileMenu && (
+                  <div className="profile-dropdown-menu fade-in-fast">
+                    <div className="dropdown-item" onClick={() => navigate('/view-profile')}>
+                      <span>👤</span> View My Profile
+                    </div>
+                    <div className="dropdown-item" onClick={() => navigate('/my-appointments')}>
+                      <span>📅</span> My Appointments
+                    </div>
+                    <div className="dropdown-item" onClick={() => navigate('/security')}>
+                      <span>🛡️</span> Security
+                    </div>
+                    <div className="dropdown-item" onClick={() => navigate('/help')}>
+                      <span>❓</span> Help
+                    </div>
+                    <div className="dropdown-divider"></div>
+                    <div className="dropdown-item logout" onClick={handleLogout}>
+                      <span>🚪</span> Logout
                     </div>
 
-                    {showProfileMenu && (
-                        <div className="profile-dropdown-menu fade-in-fast">
-                            <div className="dropdown-item" onClick={() => navigate('/view-profile')}>
-                                <span>👤</span> View My Profile
-                            </div>
-                            <div className="dropdown-item" onClick={() => navigate('/appointments')}>
-                                <span>📅</span> My Appointments
-                            </div>
-                            <div className="dropdown-item" onClick={() => navigate('/security')}>
-                                <span>🛡️</span> Security
-                            </div>
-                            <div className="dropdown-item" onClick={() => navigate('/help')}>
-                                <span>❓</span> Help
-                            </div>
-                            <div className="dropdown-divider"></div>
-                            <div className="dropdown-item logout" onClick={handleLogout}>
-                                <span>🚪</span> Logout
-                            </div>
-                            
-                            
-                        </div>
-                    )}
-                </div>
+
+                  </div>
+                )}
+              </div>
             ) : (
-                <button className="home-btn-login" onClick={() => navigate('/login')}>
-                  Login / Signup
-                </button>
+              <button className="home-btn-login" onClick={() => navigate('/login')}>
+                Login / Signup
+              </button>
             )}
           </div>
 
@@ -243,25 +243,25 @@ const Home = () => {
         </div>
 
         <div className={`home-mobile-menu ${isMenuOpen ? 'open' : ''}`}>
-            {isLoggedIn && (
-                 <div className="mobile-profile-header">
-                     <div className="avatar-placeholder small">{userProfile.name.charAt(0)}</div>
-                     <span style={{marginLeft: '10px', fontWeight: 'bold'}}>{userProfile.name}</span>
-                 </div>
-            )}
-            <a onClick={() => handleNavigation('/doctors')}>Get Doctor</a>
-            <a onClick={() => handleNavigation('/video-consult')}>Video Consult</a>
-            <a onClick={() => handleNavigation('/lab-tests')}>Book Lab Test</a>
-            <hr className="mobile-divider"/>
-            <a onClick={() => handleNavigation('/view-profile')}>View Profile</a>
-            <a onClick={() => handleNavigation('/help')}>Help</a>
-            <div className="mobile-auth-btn">
-                {isLoggedIn ? (
-                    <button className="home-btn-login full-width" onClick={handleLogout}>Logout</button>
-                ) : (
-                    <button className="home-btn-login full-width" onClick={() => handleNavigation('/login')}>Login / Signup</button>
-                )}
+          {isLoggedIn && (
+            <div className="mobile-profile-header">
+              <div className="avatar-placeholder small">{userProfile.name.charAt(0)}</div>
+              <span style={{ marginLeft: '10px', fontWeight: 'bold' }}>{userProfile.name}</span>
             </div>
+          )}
+          <a onClick={() => handleNavigation('/doctors')}>Get Doctor</a>
+          <a onClick={() => handleNavigation('/video-consult')}>Video Consult</a>
+          <a onClick={() => handleNavigation('/lab-tests')}>Book Lab Test</a>
+          <hr className="mobile-divider" />
+          <a onClick={() => handleNavigation('/view-profile')}>View Profile</a>
+          <a onClick={() => handleNavigation('/help')}>Help</a>
+          <div className="mobile-auth-btn">
+            {isLoggedIn ? (
+              <button className="home-btn-login full-width" onClick={handleLogout}>Logout</button>
+            ) : (
+              <button className="home-btn-login full-width" onClick={() => handleNavigation('/login')}>Login / Signup</button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -270,26 +270,26 @@ const Home = () => {
           <div className="hero-text">
             <h1>Your Health, <br /> Our <span className="highlight">Priority</span></h1>
             <p>
-              Experience the future of healthcare. Book appointments with top 
+              Experience the future of healthcare. Book appointments with top
               specialists, consult online, or order medicines—all in one place.
             </p>
-            
+
             <div className="search-box-container">
               <div className="search-box">
                 <div className="search-input location">
                   <span className="icon">📍</span>
-                  <input 
-                    type="text" 
-                    placeholder="West Bengal" 
+                  <input
+                    type="text"
+                    placeholder="West Bengal"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                   />
                 </div>
                 <div className="search-input main-search">
                   <span className="icon">🔍</span>
-                  <input 
-                    type="text" 
-                    placeholder="Search doctors (e.g. Dentist)..." 
+                  <input
+                    type="text"
+                    placeholder="Search doctors (e.g. Dentist)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -301,13 +301,13 @@ const Home = () => {
             <div className="hero-stats">
               <div className="hero-badges">
                 <div className="badge-item">
-                    <span className="badge-icon">🛡️</span> <span>Data Privacy</span>
+                  <span className="badge-icon">🛡️</span> <span>Data Privacy</span>
                 </div>
                 <div className="badge-item">
-                    <span className="badge-icon">👨‍⚕️</span> <span>Verified Doctors</span>
+                  <span className="badge-icon">👨‍⚕️</span> <span>Verified Doctors</span>
                 </div>
                 <div className="badge-item">
-                    <span className="badge-icon">⚡</span> <span>Instant Booking</span>
+                  <span className="badge-icon">⚡</span> <span>Instant Booking</span>
                 </div>
               </div>
             </div>
@@ -315,9 +315,9 @@ const Home = () => {
 
           <div className="hero-image">
             <div className="image-bg-blob"></div>
-            <img 
-              src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=1000&auto=format&fit=crop" 
-              alt="Doctor and Patient" 
+            <img
+              src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=1000&auto=format&fit=crop"
+              alt="Doctor and Patient"
               className="main-img"
             />
           </div>
@@ -330,66 +330,66 @@ const Home = () => {
           <div className="symptom-left">
             <h2>Chat with Dr. Nirupama 👩‍⚕️</h2>
             <p>Describe your symptoms, and our junior assistant will guide you to the right specialist.</p>
-            
-            <textarea 
-              className="symptom-input" 
+
+            <textarea
+              className="symptom-input"
               rows="3"
-              placeholder={isLoggedIn 
-                ? "E.g., I have a severe toothache and sensitivity to cold water..." 
+              placeholder={isLoggedIn
+                ? "E.g., I have a severe toothache and sensitivity to cold water..."
                 : "Please login to consult with Nirupama..."}
               value={symptomDesc}
               onChange={(e) => setSymptomDesc(e.target.value)}
             ></textarea>
 
-            <button 
-              className="btn-analyze" 
+            <button
+              className="btn-analyze"
               onClick={handleAnalyzeSymptoms}
               disabled={isAnalyzing}
             >
-              {isAnalyzing 
-                ? 'Consulting Database...' 
+              {isAnalyzing
+                ? 'Consulting Database...'
                 : (isLoggedIn ? 'Ask Nirupama' : 'Login to Ask')}
             </button>
           </div>
 
           {/* RIGHT SIDE: CHARACTER & SPEECH BUBBLE */}
           <div className="symptom-right">
-            
+
             {/* 1. The Speech Bubble */}
             <div className={`speech-bubble ${suggestion ? 'has-result' : ''}`}>
-               {isAnalyzing ? (
-                  <div className="typing-indicator">
-                    <span></span><span></span><span></span>
-                  </div>
-               ) : suggestion ? (
-                  /* Result View */
-                  <div className="bubble-content fade-in">
-                    <span className="bubble-title">I suggest seeing a:</span>
-                    <h3 className="bubble-specialist">{suggestion.type}</h3>
-                    <p className="bubble-desc">"{suggestion.message}"</p>
-                    <button className="btn-bubble-action" onClick={() => navigate(`/doctors?specialization=${suggestion.type}`)}>
-                      Find {suggestion.type}s
-                    </button>
-                  </div>
-               ) : (
-                  /* Idle View */
-                  <div className="bubble-content">
-                    <p><strong>"Hi, I'm Nirupama!"</strong><br/> I'm here to help. Tell me how you're feeling today!</p>
-                  </div>
-               )}
-               {/* Little triangle for speech bubble */}
-               <div className="bubble-arrow"></div>
+              {isAnalyzing ? (
+                <div className="typing-indicator">
+                  <span></span><span></span><span></span>
+                </div>
+              ) : suggestion ? (
+                /* Result View */
+                <div className="bubble-content fade-in">
+                  <span className="bubble-title">I suggest seeing a:</span>
+                  <h3 className="bubble-specialist">{suggestion.type}</h3>
+                  <p className="bubble-desc">"{suggestion.message}"</p>
+                  <button className="btn-bubble-action" onClick={() => navigate(`/doctors?specialization=${suggestion.type}`)}>
+                    Find {suggestion.type}s
+                  </button>
+                </div>
+              ) : (
+                /* Idle View */
+                <div className="bubble-content">
+                  <p><strong>"Hi, I'm Nirupama!"</strong><br /> I'm here to help. Tell me how you're feeling today!</p>
+                </div>
+              )}
+              {/* Little triangle for speech bubble */}
+              <div className="bubble-arrow"></div>
             </div>
 
             {/* 2. The Girl Character Image */}
             <div className="character-wrapper">
-                {/* Using a 3D cartoon doctor image */}
-                <img 
-                  src="image-removebg-preview.png" 
-                  alt="Dr Nirupama" 
-                  className={`ai-character ${isAnalyzing ? 'thinking' : ''}`}
-                />
-                <div className="character-shadow"></div>
+              {/* Using a 3D cartoon doctor image */}
+              <img
+                src="image-removebg-preview.png"
+                alt="Dr Nirupama"
+                className={`ai-character ${isAnalyzing ? 'thinking' : ''}`}
+              />
+              <div className="character-shadow"></div>
             </div>
 
           </div>
@@ -401,7 +401,7 @@ const Home = () => {
           <h2>Top Specialties</h2>
           <p>Consult with experts in various fields</p>
         </div>
-        
+
         <div className="services-grid">
           <div className="service-card">
             <img src="https://cdn-icons-png.flaticon.com/512/3004/3004458.png" alt="Dentist" />
@@ -418,7 +418,7 @@ const Home = () => {
             <h3>Nutrition</h3>
             <p>Diet & Wellness</p>
           </div>
-          <div className="service-card"> 
+          <div className="service-card">
             <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" alt="Surgery" />
             <h3>General Medecine</h3>
             <p>Safe procedures</p>
@@ -436,7 +436,7 @@ const Home = () => {
           </div>
         </div>
         <div className="cta-image">
-              <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=80" alt="Mobile App" />
+          <img src="https://images.unsplash.com/photo-1551650975-87deedd944c3?auto=format&fit=crop&w=600&q=80" alt="Mobile App" />
         </div>
       </section>
     </div>

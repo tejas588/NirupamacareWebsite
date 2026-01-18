@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Stethoscope, Save, CheckSquare, XSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
@@ -8,11 +8,51 @@ const DoctorProfileSetup = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- NEW: Toggles for Availability ---
   const [availability, setAvailability] = useState({
     clinic: true,  // Default: Clinic is Open
     online: false  // Default: Online is Closed
   });
+
+  const [isEditing, setIsEditing] = useState(false);
+
+  // --- NEW: Load Existing Profile if available ---
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await api.getDoctorProfile();
+        console.log("Loaded Profile:", profile);
+
+        if (profile) {
+          setIsEditing(true);
+          setFormData({
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            display_name: profile.display_name || '',
+            specialty: profile.specialty || '',
+            experience_years: profile.experience_years || '',
+            credentials: profile.credentials || '',
+            clinic_name: profile.clinic_name || '',
+            clinic_address: profile.clinic_address || '',
+            city: profile.city || '',
+            price_clinic: profile.price_clinic || '',
+            price_online: profile.price_online || '',
+            bio: profile.bio || '',
+            languages: Array.isArray(profile.languages) ? profile.languages.join(', ') : (profile.languages || '')
+          });
+
+          // Set Availability Toggles based on prices or existing data
+          setAvailability({
+            clinic: (profile.price_clinic > 0),
+            online: (profile.price_online > 0)
+          });
+        }
+      } catch (err) {
+        // If 404, it means no profile exists yet, which is fine for new users.
+        console.log("No existing profile found. Starting fresh.");
+      }
+    };
+    loadProfile();
+  }, []);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -53,7 +93,8 @@ const DoctorProfileSetup = () => {
       };
 
       await api.createDoctorProfile(payload);
-      alert("Doctor Profile Created Successfully!");
+      await api.createDoctorProfile(payload);
+      alert(isEditing ? "Profile Updated Successfully!" : "Doctor Profile Created Successfully!");
       navigate('/doctor-dashboard');
 
     } catch (error) {
@@ -77,8 +118,8 @@ const DoctorProfileSetup = () => {
       <div className="doc-content-container">
         <div className="doc-card">
           <div className="doc-header">
-            <h2><Stethoscope className="icon-blue" /> Doctor Registration</h2>
-            <p className="sub-text">Build your digital clinic presence</p>
+            <h2><Stethoscope className="icon-blue" /> {isEditing ? "Update Doctor Profile" : "Doctor Registration"}</h2>
+            <p className="sub-text">{isEditing ? "Manage your details and settings" : "Build your digital clinic presence"}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="doc-form">
@@ -149,9 +190,12 @@ const DoctorProfileSetup = () => {
                   <input name="city" onChange={handleChange} required placeholder="e.g. Kolkata" />
                 </div>
 
-                <div className="input-group icon-input">
-                  <MapPin size={18} className="input-icon" />
-                  <input name="clinic_address" onChange={handleChange} placeholder="Full Address" style={{ paddingLeft: '40px' }} />
+                <div className="input-group">
+                  <label>Full Address</label>
+                  <div style={{ position: 'relative' }}>
+                    <MapPin size={18} className="input-icon" />
+                    <input name="clinic_address" onChange={handleChange} placeholder="Full Address" style={{ paddingLeft: '40px' }} />
+                  </div>
                 </div>
 
                 {/* Toggles */}
@@ -206,7 +250,7 @@ const DoctorProfileSetup = () => {
 
             <div className="action-footer">
               <button type="submit" className="doc-btn-primary" disabled={isSubmitting}>
-                <Save size={20} /> {isSubmitting ? "Saving..." : "Create Doctor Profile"}
+                <Save size={20} /> {isSubmitting ? "Saving..." : (isEditing ? "Update Changes" : "Create Doctor Profile")}
               </button>
             </div>
 
