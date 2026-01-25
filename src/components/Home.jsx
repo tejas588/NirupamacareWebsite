@@ -287,13 +287,13 @@ const Home = () => {
             <h1>Your Health, <br /> Our <span className="highlight">Priority</span></h1>
             <p>
               Experience the future of healthcare. Book appointments with top
-              specialists, consult online, or order medicines—all in one place.
+              specialists, consult online/offline, or book lab tests—all in one place.
             </p>
 
             <div className="search-box-container">
               <div className="search-box">
                 <div className="search-input location">
-                  <span className="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <span className="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg></span>
@@ -305,7 +305,7 @@ const Home = () => {
                   />
                 </div>
                 <div className="search-input main-search">
-                  <span className="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <span className="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg></span>
@@ -338,7 +338,7 @@ const Home = () => {
           <div className="hero-image">
             <div className="image-bg-blob"></div>
             <img
-              src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=1000&auto=format&fit=crop"
+              src="doctorandpatient.png"
               alt="Doctor and Patient"
               className="main-img"
             />

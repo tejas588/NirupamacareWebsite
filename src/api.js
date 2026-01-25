@@ -9,6 +9,7 @@ import {
 
 const API_URL = "https://api-48aa.vercel.app/v1";
 //const API_URL = "http://localhost:8000/v1";
+//const API_URL = "https://nirupamacare-api-gwfmegeffrhqb8cy.centralindia-01.azurewebsites.net/v1";
 
 // --- Helper: Get Token robustly ---
 const getAuthToken = () => {
@@ -121,8 +122,8 @@ export const api = {
 
             const response = await axios.post(`${API_URL}/doctor/upload-photo`, formData, {
                 headers: {
-                    Authorization: `Bearer ${token}`
-                    // Removed manual Content-Type: multipart/form-data to let Axios set it with boundary
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": undefined, // Explicitly undefined to force browser to set boundary
                 }
             });
             return response.data; // { url: "..." }

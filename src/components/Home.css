@@ -303,44 +303,36 @@
     align-items: center;
 }
 
+/* #home-page-root .image-bg-blob {
+    display: none;
+} */
 #home-page-root .image-bg-blob {
-    position: absolute;
-    width: 450px;
-    height: 450px;
-    background: #d1fae5;
-    border-radius: 50% 40% 30% 70% / 60% 30% 70% 40%;
-    z-index: 1;
-    animation: morph 8s ease-in-out infinite;
-}
-
-@keyframes morph {
-    0% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
-
-    50% {
-        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
-    }
-
-    100% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    }
+    display: none;
+    /* Hide the blob to match the clean card look */
 }
 
 #home-page-root .main-img {
     width: 100%;
-    max-width: 480px;
+    max-width: 400px;
+    /* Reduced slightly to look more like a profile card */
     height: auto;
     z-index: 2;
-    border-radius: 20px;
+    border-radius: 25px;
+    /* Increased radius */
     box-shadow: var(--home-shadow);
     object-fit: cover;
+    background-color: #dfe4ea;
+    /* Light gray background to reveal the border radius if image is transparent */
+    padding: 0;
+    /* Ensure no padding unless needed */
 }
+
 
 /* --- Services --- */
 #home-page-root .services-section {
     padding: 80px 24px;
     text-align: center;
+    background-color: var(--home-bg-light);
 }
 
 #home-page-root .section-header h2 {
@@ -662,6 +654,7 @@
         border-left: none;
         border-top: 1px solid #eee;
         padding: 2rem;
+        border-radius: 0 0 24px 24px;
     }
 
     /* Mobile Menu Container */
@@ -919,8 +912,8 @@
 /* Right Side (Character Stage) */
 #home-page-root .symptom-right {
     flex: 1;
-    background: transparent;
-    /* Removed gray bg */
+    background: var(--home-bg-light);
+    /* Changed to light green */
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -929,6 +922,7 @@
     /* Align character to bottom */
     position: relative;
     min-height: 450px;
+    border-radius: 0 24px 24px 0;
 }
 
 /* --- THE CHARACTER --- */
@@ -1136,6 +1130,7 @@
     #home-page-root .symptom-right {
         padding-top: 0;
         min-height: auto;
+        border-radius: 24px 24px 0 0;
     }
 
     #home-page-root .character-wrapper {
@@ -1200,7 +1195,50 @@
 
     /* Additional Compactness for Layout */
     #home-page-root .hero-section {
-        padding: 60px 15px 20px;
+        padding: 100px 20px 40px;
+        min-height: auto;
+        height: auto;
+        display: block;
+        overflow: visible;
+    }
+
+    /* FORCE FLEX COLUMN LAYOUT FOR CONTENT TO AVOID GRID OVERLAP */
+    #home-page-root .hero-content {
+        display: flex !important;
+        flex-direction: column;
+        gap: 40px;
+    }
+
+    /* Ensure badges are clearly visible and on top */
+    #home-page-root .hero-badges {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        width: 100%;
+        position: relative;
+        z-index: 10;
+        /* Fix overlap */
+        margin-bottom: 50px;
+        /* Ensure space before image */
+    }
+
+    /* Duplicate removed */
+
+    #home-page-root .badge-item {
+        width: 100%;
+        max-width: 220px;
+        /* Slightly smaller max width */
+        justify-content: center;
+        padding: 8px 16px;
+        /* Reduced padding */
+        font-size: 0.85rem;
+        /* Smaller text */
+    }
+
+    /* Reduce icon size in phone view */
+    #home-page-root .badge-icon {
+        font-size: 1rem;
     }
 
     #home-page-root .search-box {
