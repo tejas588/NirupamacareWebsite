@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { api } from '../api';
 import './AppointmentBooking.css';
 
@@ -9,6 +11,8 @@ const AppointmentBooking = () => {
 
     const [doctor, setDoctor] = useState(null);
     const [loadingDoc, setLoadingDoc] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(true);
 
     // Booking State
     const [selectedDate, setSelectedDate] = useState('');
@@ -21,8 +25,26 @@ const AppointmentBooking = () => {
     const [isBooking, setIsBooking] = useState(false);
     const [userData, setUserData] = useState({ name: '' });
 
+    // Check authentication first
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setIsAuthenticated(!!user);
+            setCheckingAuth(false);
+
+            if (!user) {
+                // User is not authenticated, redirect to login
+                navigate('/login');
+            }
+        });
+
+        return () => unsubscribe();
+    }, [navigate]);
+
     // Initial Load: Fetch Doctor and user profile
     useEffect(() => {
+        // Only fetch data if authenticated
+        if (checkingAuth || !isAuthenticated) return;
+
         const fetchData = async () => {
             try {
                 // Fetch Doctor
@@ -53,14 +75,21 @@ const AppointmentBooking = () => {
                     navigate('/doctors');
                 }
 
-                // Fetch current user name
+                // Fetch current user name - this will now always get fresh data
                 const userProfile = await api.getPatientProfile().catch(() => null);
                 if (userProfile) {
                     setUserData({ name: userProfile.full_name });
+                } else {
+                    // Clear any stale data
+                    setUserData({ name: '' });
                 }
 
             } catch (error) {
                 console.error("Error fetching data:", error);
+                // If there's an auth error, redirect to login
+                if (error.message === "User not authenticated") {
+                    navigate('/login');
+                }
             } finally {
                 setLoadingDoc(false);
             }
@@ -70,7 +99,7 @@ const AppointmentBooking = () => {
 
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
-    }, [doctorId, navigate]);
+    }, [doctorId, navigate, isAuthenticated, checkingAuth]);
 
     // Generate Slots based on doctor availability for selected date
     useEffect(() => {
@@ -164,13 +193,26 @@ const AppointmentBooking = () => {
                 || (typeof error.response?.data === 'string' ? error.response.data : "")
                 || error.message
                 || "Unknown Error";
-            alert(`Booking Failed: ${errorMsg}. Please ensure you are logged in as a patient.`);
+
+            // Check if it's an authentication or role issue
+            if (errorMsg.toLowerCase().includes('insufficient role') ||
+                errorMsg.toLowerCase().includes('not logged in') ||
+                errorMsg.toLowerCase().includes('patient') ||
+                error.response?.status === 401 ||
+                error.response?.status === 403) {
+                // Authentication or role issue - redirect to login
+                alert('Login to Book Doctor');
+                navigate('/login');
+            } else {
+                // Other errors
+                alert(`Booking Failed: ${errorMsg}`);
+            }
         } finally {
             setIsBooking(false);
         }
     };
 
-    if (loadingDoc) return <div className="booking-page">Loading...</div>;
+    if (checkingAuth || loadingDoc) return <div className="booking-page">Loading...</div>;
     if (!doctor) return null;
 
     // determine availabilities for rendering

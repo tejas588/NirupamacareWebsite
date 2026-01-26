@@ -25,6 +25,7 @@ const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState({ name: 'User', avatar: '' });
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     setLoaded(true);
@@ -71,6 +72,15 @@ const Home = () => {
             navigate('/userprofilesetup');
           }
         });
+
+      // ✅ 4. Check for confirmed appointments
+      api.getPatientAppointments()
+        .then((appointments) => {
+          checkForNewConfirmations(appointments);
+        })
+        .catch((err) => {
+          console.log("Could not fetch appointments:", err);
+        });
     }
 
     // Close dropdown when clicking outside
@@ -83,6 +93,36 @@ const Home = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
 
   }, [navigate]); // Added navigate dependency
+
+  // Check for newly confirmed appointments
+  const checkForNewConfirmations = (appointments) => {
+    // Get previously seen confirmed appointments from localStorage
+    const seenConfirmations = JSON.parse(localStorage.getItem('seenConfirmations') || '[]');
+
+    // Find confirmed appointments that haven't been seen yet
+    const newConfirmations = appointments.filter(apt =>
+      apt.status === 'Confirmed' && !seenConfirmations.includes(apt.id)
+    );
+
+    if (newConfirmations.length > 0) {
+      // Show notification for the first new confirmation
+      const apt = newConfirmations[0];
+      setNotification({
+        message: `Your appointment is confirmed by the doctor at ${apt.time} on ${apt.date}`,
+        type: 'success',
+        appointmentId: apt.id
+      });
+
+      // Mark this appointment as seen
+      const updatedSeen = [...seenConfirmations, apt.id];
+      localStorage.setItem('seenConfirmations', JSON.stringify(updatedSeen));
+    }
+  };
+
+  // Close notification
+  const closeNotification = () => {
+    setNotification(null);
+  };
 
   // ... (Rest of your code stays exactly the same) ...
   // ... Paste the rest of your component below (Helper functions + Return statement) ...
@@ -143,10 +183,8 @@ const Home = () => {
     navigate(`/doctors?${params.toString()}`);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_name');
-    localStorage.removeItem('mongo_user_id');
+  const handleLogout = async () => {
+    await api.logout();
     setIsLoggedIn(false);
     setIsMenuOpen(false);
     navigate('/login');
@@ -280,6 +318,17 @@ const Home = () => {
           )}
         </div>
       </nav>
+
+      {/* Notification Banner */}
+      {notification && (
+        <div className={`home-notification-banner ${notification.type}`}>
+          <div className="home-notification-content">
+            <span className="notification-icon">✓</span>
+            <span>{notification.message}</span>
+          </div>
+          <button className="home-notification-close" onClick={closeNotification}>×</button>
+        </div>
+      )}
 
       <header className="hero-section">
         <div className={`hero-content ${loaded ? 'fade-in-up' : ''}`}>

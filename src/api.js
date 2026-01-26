@@ -7,9 +7,9 @@ import {
     signOut
 } from "firebase/auth";
 
-const API_URL = "https://api-48aa.vercel.app/v1";
+//const API_URL = "https://api-48aa.vercel.app/v1";
 //const API_URL = "http://localhost:8000/v1";
-//const API_URL = "https://nirupamacare-api-gwfmegeffrhqb8cy.centralindia-01.azurewebsites.net/v1";
+const API_URL = "https://nirupamacare-api-gwfmegeffrhqb8cy.centralindia-01.azurewebsites.net/v1";
 
 // --- Helper: Get Token robustly ---
 const getAuthToken = () => {
@@ -72,6 +72,11 @@ export const api = {
 
     logout: async () => {
         await signOut(auth);
+        // Clear all stored user data
+        localStorage.removeItem('token');
+        localStorage.removeItem('mongo_user_id');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_name');
     },
 
     // Sync authenticated user with backend (for Login.jsx)
@@ -232,16 +237,19 @@ export const api = {
             const queryString = params.toString();
             const url = queryString ? `${API_URL}/doctor/list?${queryString}` : `${API_URL}/doctor/list`;
 
-            // Try to get token robustly
+            // Try to get token, but don't fail if not authenticated
             let headers = {};
             try {
                 const token = await getAuthToken();
                 headers = { Authorization: `Bearer ${token}` };
+                console.log("Fetching doctors with authentication");
             } catch (e) {
-                // Not authenticated or error
+                // Not authenticated - this is OK, make request without auth
+                console.log("Fetching doctors without authentication (public access)");
             }
 
             const response = await axios.get(url, { headers });
+            console.log(`Found ${response.data?.length || 0} doctors`);
             return response.data; // Returns array of DoctorPublic
         } catch (error) {
             console.error("Search Doctors Error:", {
@@ -249,7 +257,8 @@ export const api = {
                 data: error.response?.data,
                 message: error.message
             });
-            // If 401, it means we needed a token but didn't have one (or it expired)
+            // Only return empty array if the actual API call failed
+            // This could be network error, server error, etc.
             return [];
         }
     },
@@ -261,7 +270,10 @@ export const api = {
             try {
                 const token = await getAuthToken();
                 headers = { Authorization: `Bearer ${token}` };
-            } catch (e) { }
+                console.log(`Fetching doctor ${id} with authentication`);
+            } catch (e) {
+                console.log(`Fetching doctor ${id} without authentication (public access)`);
+            }
 
             const response = await axios.get(`${API_URL}/doctor/${id}`, { headers });
             return response.data;

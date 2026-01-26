@@ -8,6 +8,7 @@ const MyAppointments = () => {
     const navigate = useNavigate();
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [notification, setNotification] = useState(null);
 
     useEffect(() => {
         const fetch = async () => {
@@ -16,6 +17,9 @@ const MyAppointments = () => {
                 // Sort by date (newest first)? Or server sorts?
                 // Let's reverse to show newest first if server returns append
                 setAppointments(data.reverse());
+
+                // Check for newly confirmed appointments
+                checkForNewConfirmations(data);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -24,6 +28,36 @@ const MyAppointments = () => {
         };
         fetch();
     }, []);
+
+    // Check for newly confirmed appointments
+    const checkForNewConfirmations = (appointments) => {
+        // Get previously seen confirmed appointments from localStorage
+        const seenConfirmations = JSON.parse(localStorage.getItem('seenConfirmations') || '[]');
+
+        // Find confirmed appointments that haven't been seen yet
+        const newConfirmations = appointments.filter(apt =>
+            apt.status === 'Confirmed' && !seenConfirmations.includes(apt.id)
+        );
+
+        if (newConfirmations.length > 0) {
+            // Show notification for the first new confirmation
+            const apt = newConfirmations[0];
+            setNotification({
+                message: `Your appointment is confirmed by the doctor at ${apt.time} on ${apt.date}`,
+                type: 'success',
+                appointmentId: apt.id
+            });
+
+            // Mark this appointment as seen
+            const updatedSeen = [...seenConfirmations, apt.id];
+            localStorage.setItem('seenConfirmations', JSON.stringify(updatedSeen));
+        }
+    };
+
+    // Close notification
+    const closeNotification = () => {
+        setNotification(null);
+    };
 
     const getStatusClass = (status) => {
         switch (status) {
@@ -49,6 +83,17 @@ const MyAppointments = () => {
                 </button>
                 <h2>My Appointments</h2>
             </div>
+
+            {/* Notification Banner */}
+            {notification && (
+                <div className={`notification-banner ${notification.type}`}>
+                    <div className="notification-content">
+                        <CheckCircle size={20} />
+                        <span>{notification.message}</span>
+                    </div>
+                    <button className="notification-close" onClick={closeNotification}>×</button>
+                </div>
+            )}
 
             {loading ? (
                 <div className="loading-state">Loading your appointments...</div>
